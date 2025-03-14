@@ -1,9 +1,16 @@
 DOCKER_IMAGE:=sanic_bulk
 DOCKER_RUN:=docker run --rm -it --publish 8000:8000
 
-run: build
+.PHONY: help
+.DEFAULT_GOAL:=help
+help:	## display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2 } END{print ""}' $(MAKEFILE_LIST)
+
+run: build  ## run from container
 	${DOCKER_RUN} ${DOCKER_IMAGE}
-build:
+build:  ## build container (needed for shell)
 	docker build --tag ${DOCKER_IMAGE} .
-shell:
+shell:  ## dev shell (mounting '.' to workdir)
 	${DOCKER_RUN} --volume ${PWD}:/app/ ${DOCKER_IMAGE} /bin/sh
+run_local:  ## launch app (when in container)
+	python3 -m sanic --host 0.0.0.0 --single-process src.app:app --debug

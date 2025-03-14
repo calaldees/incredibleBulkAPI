@@ -4,7 +4,7 @@ from pathlib import Path
 import sanic
 from sanic.log import logger as log
 
-from static import static_gzip
+from .static_gzip import static_gzip
 
 app = sanic.Sanic("bulkCache")
 
