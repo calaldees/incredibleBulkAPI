@@ -107,39 +107,3 @@ def crawl_for_key(data: Mapping | Sequence, key):
         yield from itertools.chain.from_iterable(crawl_for_key(i, key) for i in data)
     #    case _:
     #        pass
-
-
-def extract_urls(current_path: str, data: Mapping | Sequence) -> set[str]:
-    """
-    >>> extract_urls(None, {})
-    set()
-    >>> extract_urls(
-    ...     None,
-    ...     [
-    ...         1,
-    ...         2,
-    ...         {'primary_action': 'NotRightType'},
-    ...         {'primary_action': {'payload': {'link': {'href': 'fake_url'}}}},
-    ...     ],
-    ... )
-    {'fake_url'}
-    """
-    # Features - is a list of items
-    if get_path(data, "0.slug"):
-        return {f"{current_path}/{i.get('slug')}" for i in data}
-    # CarPage - crawl for primary_action navigate hrefs
-    car_page_navigate_hrefs: set[str] = set(
-        filter(
-            None,
-            (
-                get_path(primary_action, "payload.link.href")  # type: ignore
-                for primary_action in crawl_for_key(data, "primary_action")
-            ),
-        )
-    )
-    # set(
-    # TODO: cache Playables
-    # get_path(primary_action, 'payload.id')
-    # Although these are calls to `bff-mobile` and may need more client work
-    # )
-    return car_page_navigate_hrefs
