@@ -1,62 +1,55 @@
+import typing as t
 import asyncio
 import datetime
 import gzip
+import logging
 from pathlib import Path
 
-import sanic
-from sanic.log import logger as log
+import ujson
+
+from bulk.site_model import AbstractSiteModel
+
+log = logging.getLogger(__name__)
 
 
-def setup_background_bulk_generator(
-    app: sanic.Sanic,
-    endpoint_path: str,
-    output_path: Path,
+def create_background_bulk_crawler(
+    site_model: AbstractSiteModel,
+    path_destination: Path,
     cache_period: datetime.timedelta,
     retry_period: datetime.timedelta,
-    headers: dict[str, str],
-) -> None:
-    async def generate_bulk_cache(app):
+) -> t.Coroutine[t.Any, t.Any, t.NoReturn]:
+
+    async def generate_bulk_cache():
         log.info(
-            f"BULK_CACHE: started background task: {endpoint_path} -> {output_path}"
+            f"BULK_CACHE: started background task: {site_model=} -> {path_destination=}"
         )
 
-        def get_age(path) -> datetime.timedelta:
+        def get_age(path: Path) -> datetime.timedelta:
             if not path.exists():
                 return datetime.timedelta(weeks=52)
-            return datetime.datetime.now() - datetime.datetime.fromtimestamp(
-                path.stat().st_mtime
-            )
+            return datetime.datetime.now() - datetime.datetime.fromtimestamp(path.stat().st_mtime)
 
         async def _generate_bulk_cache():
-            response = None
             try:
-                log.info(
-                    f"BROKEN: Attempt to {endpoint_path=} {headers=} fails because /bulk_data stream response never compleats"
-                )
-                _, response = await app.asgi_client.get(endpoint_path, headers=headers)
+                cache = site_model.crawl()
             except Exception as ex:
                 log.exception(ex)
             else:
-                if response and response.status == 200:
-                    log.info(f"BULK_CACHE: writing {output_path}")
-                    with output_path.open("wb") as f:
-                        f.write(gzip.compress(response.body))
-                else:
-                    log.error(
-                        f"BULK_CACHE: Failed to call '{endpoint_path}' in background process"
-                    )
+                log.info(f"BULK_CACHE: writing {path_destination}")
+                with gzip.open(path_destination, 'wt', encoding='UTF-8') as zipfile:
+                    ujson.dump(cache, zipfile)
 
         while True:
-            if (cache_period - get_age(output_path)) < datetime.timedelta():
+            if (cache_period - get_age(path_destination)) < datetime.timedelta():
                 log.info(
-                    f"BULK_CACHE: {output_path=} older than {cache_period=} - regenerating bulk cache"
+                    f"BULK_CACHE: {path_destination=} older than {cache_period=} - regenerating bulk cache"
                 )
                 await _generate_bulk_cache()
 
             sleep_seconds = int(
                 max(
                     retry_period.total_seconds(),
-                    (cache_period - get_age(output_path)).total_seconds(),
+                    (cache_period - get_age(path_destination)).total_seconds(),
                 )
             )
             log.info(
@@ -64,6 +57,4 @@ def setup_background_bulk_generator(
             )
             await asyncio.sleep(sleep_seconds)
 
-    @app.main_process_start
-    async def background_task(app):
-        asyncio.create_task(generate_bulk_cache(app))
+    return generate_bulk_cache

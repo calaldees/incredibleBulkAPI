@@ -5,6 +5,8 @@ services:
       context: .
     expose:
       - 8000
+    volumes:
+      - _generated:/app/_generated
 
   nginx:
     build:
@@ -15,6 +17,8 @@ services:
       - incredibleBulkAPI
     volumes:
       - logs:/var/log
+      - _generated:/app/_generated
 
 volumes:
     logs:
+    _generated:

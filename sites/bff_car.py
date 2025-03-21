@@ -8,6 +8,7 @@ class BffCarSiteModel(AbstractSiteModel):
 
     def __init__(self):
         self.endpoint = 'https://bff-car-guacamole.musicradio.com'
+        self.headers = {"Accept": "application/vnd.global.5+json"}
         self.root_path: APIPath = '/features'
 
     @t.override

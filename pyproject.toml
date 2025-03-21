@@ -5,6 +5,7 @@ readme = "README.md"
 dependencies = [
     "sanic[ext]",
     "aiohttp",
+	"ujson",
 ]
 
 [project.optional-dependencies]
