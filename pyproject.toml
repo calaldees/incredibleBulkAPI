@@ -1,0 +1,25 @@
+[project]
+name = "incredibleBulkAPI"
+version = "0.0.0"
+readme = "README.md"
+dependencies = [
+    "sanic[ext]",
+    "aiohttp",
+]
+
+[project.optional-dependencies]
+test = [
+	"pytest",
+	"pytest-asyncio",
+	"sanic-testing",
+	"mypy",
+]
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "mypy-sanic_ext.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--doctest-modules -p no:cacheprovider"

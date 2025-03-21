@@ -6,11 +6,13 @@ RUN apk add --no-cache \
 
 WORKDIR /app/
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt -t /site-packages
+COPY ./pyproject.toml .
+RUN pip install --no-cache-dir -e '.[test]' -t /site-packages
 ENV PYTHONPATH=/site-packages
 
 COPY . .
 
 # python3 -m sanic --host 0.0.0.0 --single-process app --debug
-CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "--single-process", "src.app", "--debug"]
+CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "--single-process", "sanic_app.app", "--debug"]
+
+# TODO: Production build with CMD and without [test]
