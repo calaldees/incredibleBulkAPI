@@ -1,4 +1,4 @@
-DOCKER_IMAGE:=sanic_bulk
+DOCKER_IMAGE:=incredible_bulk_api
 DOCKER_RUN:=docker run --rm -it --publish 8000:8000
 
 .PHONY: help

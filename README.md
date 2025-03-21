@@ -1,2 +1,3 @@
-# SanicBatchCache
-Api service for gzip batching
+# incredibleBulkAPI
+
+* API service for gzip batching of other REST services

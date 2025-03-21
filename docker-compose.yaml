@@ -1,0 +1,20 @@
+services:
+
+  incredibleBulkAPI:
+    build:
+      context: .
+    expose:
+      - 8000
+
+  nginx:
+    build:
+      context: nginx/
+    ports:
+      - 80:80
+    links:
+      - incredibleBulkAPI
+    volumes:
+      - logs:/var/log
+
+volumes:
+    logs:
