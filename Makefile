@@ -9,7 +9,7 @@ help:	## display this help
 run: build  ## run from container
 	${DOCKER_RUN} ${DOCKER_IMAGE}
 build:  ## build container (needed for shell)
-	docker build --tag ${DOCKER_IMAGE} .
+	docker build --tag ${DOCKER_IMAGE} --target test .
 shell:  ## dev shell (mounting '.' to workdir)
 	${DOCKER_RUN} --volume ${PWD}:/app/ ${DOCKER_IMAGE} /bin/sh
 run_local:  ## launch app (when in container)
