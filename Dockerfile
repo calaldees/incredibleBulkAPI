@@ -12,7 +12,7 @@ ENV PYTHONPATH=/site-packages
 
 COPY . .
 
-# python3 -m sanic --host 0.0.0.0 --single-process app --debug
-CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "--single-process", "sanic_app.app", "--debug"]
+CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "sanic_app.app:app", "--debug"]
+# "--single-process"
 
 # TODO: Production build with CMD and without [test]
