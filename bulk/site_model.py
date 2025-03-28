@@ -4,7 +4,7 @@ import logging
 import typing as t
 from abc import abstractmethod
 
-from .fetch import get_url
+from .fetch import fetch_json
 
 log = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 type APIPath = str
 type APIDepth = int
 type APIPayload = t.Mapping[str, t.Any] | t.Sequence[t.Any]
+type APIBulk = t.Mapping[APIPath, APIPayload]
 
 
 class AbstractSiteModel:
@@ -19,8 +20,8 @@ class AbstractSiteModel:
     root_path: APIPath = "/"
     headers: dict[str, str] = {}
 
-    async def crawl(self) -> t.Mapping[APIPath, APIPayload]:
-        cache: t.Mapping[APIPath, APIPayload] = {}
+    async def crawl(self) -> APIBulk:
+        cache: APIBulk = {}
         to_crawl: t.Mapping[APIPath, APIDepth] = {self.root_path: 0}
         while to_crawl:
             api_path, depth = to_crawl.popitem()
@@ -42,7 +43,7 @@ class AbstractSiteModel:
         """
         Perform the actual fetch of data
         """
-        return await get_url(self.endpoint + path, self.headers)
+        return await fetch_json(url=self.endpoint+path, headers=self.headers)
 
     @abstractmethod
     def continue_crawl(

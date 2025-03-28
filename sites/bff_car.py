@@ -1,7 +1,9 @@
+import re
 import typing as t
 
-from bulk.data import get_path, crawl_for_key
-from bulk.site_model import APIDepth, APIPath, APIPayload, AbstractSiteModel
+from bulk.data import crawl_for_key, get_path
+from bulk.image_model import AbstractImageModel, ImageUrl
+from bulk.site_model import AbstractSiteModel, APIBulk, APIDepth, APIPath, APIPayload
 
 
 class BffCarSiteModel(AbstractSiteModel):
@@ -57,3 +59,21 @@ class BffCarSiteModel(AbstractSiteModel):
             # depth > 2 - gives 175 uncompressed 5.4mb gzip 0.75mb
             return False
         return True
+
+
+class BffCarImageModel(AbstractImageModel):
+
+    ALLOWED_URL_REGEX = (
+        re.compile("/features/.*"),
+        re.compile("/catchup/.*"),
+    )
+
+    @t.override
+    def extract_image_urls(self, data: APIBulk) -> t.Iterable[ImageUrl]:
+        for api_path, api_payload in data.items():
+            if any(regex.match(api_path) for regex in self.ALLOWED_URL_REGEX):
+                yield from (
+                    image_url
+                    for image_url in crawl_for_key(api_payload, "url")
+                    if "images." in image_url   # This is a substring in `proteus` endpoints
+                )

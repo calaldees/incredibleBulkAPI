@@ -1,23 +1,37 @@
 services:
 
-  incredibleBulkAPI:
+  incredible_bulk_api:
     build:
       context: .
+      target: test
     expose:
       - 8000
+    ports:
+      - 8000:8000
     volumes:
       - _generated:/app/_generated
+    depends_on:
+      - image_preview_api
 
   nginx:
     build:
       context: nginx/
     ports:
       - 80:80
-    links:
-      - incredibleBulkAPI
+    depends_on:
+      - incredible_bulk_api
     volumes:
       - logs:/var/log
       - _generated:/app/_generated
+
+  image_preview_api:
+    build:
+      context: imagePreviewAPI/
+    expose:
+      - 8000
+    ports:
+      - 8001:8000
+
 
 volumes:
     logs:

@@ -6,6 +6,7 @@ from pathlib import Path
 import sanic
 from sanic.log import logger as log
 
+from .background_fetch import create_background_bulk_crawler_coroutine
 from .static_gzip import static_gzip
 
 logging.basicConfig(level=logging.DEBUG)
@@ -30,19 +31,19 @@ async def root(request):
 
 # app.config.BULK = json.loads(Path("bulk.config.json").read_text())
 
-# Future: Dynamically import .sites handlers using `importlib`
-# For now - we can import directly
-from sites.bff_car import BffCarSiteModel
-
-from .background_fetch import create_background_bulk_crawler_coroutine
-
 
 @app.main_process_start
 async def background_task(app):
+    # Future: Dynamically import .sites handlers using `importlib`
+    # For now - we can import directly
+    from sites.bff_car import BffCarImageModel, BffCarSiteModel
+
     asyncio.create_task(
         create_background_bulk_crawler_coroutine(
             site_model=BffCarSiteModel(),
-            path_destination=app.config.PATH_STATIC.joinpath("bff-car.json.gz"),
+            image_model=BffCarImageModel(),
+            path_gzip_data=app.config.PATH_STATIC.joinpath("bff-car.json.gz"),
+            path_gzip_images=app.config.PATH_STATIC.joinpath("bff-car-images.json.gz"),
             cache_period=datetime.timedelta(minutes=2),  # hours=1
             retry_period=datetime.timedelta(seconds=10),
         ),
