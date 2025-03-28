@@ -10,6 +10,7 @@ services:
       - 8000:8000
     volumes:
       - _generated:/app/_generated
+      - persistent_cache:/app/__cache
     depends_on:
       - image_preview_api
 
@@ -35,4 +36,5 @@ services:
 
 volumes:
     logs:
+    persistent_cache:
     _generated:

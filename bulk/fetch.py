@@ -25,7 +25,7 @@ async def fetch_url(
     method: str = "GET",
     data: bytes = b"",
 ) -> bytes:
-    # Needs to be sync, because I havent got a running eventloop right now
+    # Needs to be sync, because I haven't got a running event-loop right now
     with urllib.request.urlopen(
         urllib.request.Request(url=url, headers=headers, method=method, data=data)
     ) as response:
