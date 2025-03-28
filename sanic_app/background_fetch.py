@@ -12,7 +12,7 @@ from bulk.site_model import AbstractSiteModel
 log = logging.getLogger(__name__)
 
 
-def create_background_bulk_crawler(
+def create_background_bulk_crawler_coroutine(
     site_model: AbstractSiteModel,
     path_destination: Path,
     cache_period: datetime.timedelta,
@@ -31,7 +31,7 @@ def create_background_bulk_crawler(
 
         async def _generate_bulk_cache():
             try:
-                cache = site_model.crawl()
+                cache = await site_model.crawl()
             except Exception as ex:
                 log.exception(ex)
             else:
@@ -57,4 +57,4 @@ def create_background_bulk_crawler(
             )
             await asyncio.sleep(sleep_seconds)
 
-    return generate_bulk_cache
+    return generate_bulk_cache()

@@ -12,7 +12,7 @@ class DoNotPersistCacheException(Exception):
     pass
 
 
-def cache_disk(original_function=None, cache_path=Path('__cache'), ttl=datetime.timedelta(days=1), cache_only=True, args_to_bytes_func=lambda *args, **kwargs: pickle.dumps((args, kwargs))):
+def cache_disk(original_function=None, cache_path=Path('__cache'), ttl=datetime.timedelta(days=1), cache_only=False, args_to_bytes_func=lambda *args, **kwargs: pickle.dumps((args, kwargs))):
     """
     TODO: doctests with tempfile.tempdir
     """

@@ -13,5 +13,7 @@ build:  ## build container (needed for shell)
 shell:  ## dev shell (mounting '.' to workdir)
 	${DOCKER_RUN} --volume ${PWD}:/app/ ${DOCKER_IMAGE} /bin/sh
 run_local:  ## launch app (when in container)
-	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug
+	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug --noisy-exceptions --no-motd
+	# --verbosity
 	# --single-process
+

@@ -6,8 +6,8 @@ from bulk.site_model import APIDepth, APIPath, APIPayload, AbstractSiteModel
 
 class BffCarSiteModel(AbstractSiteModel):
 
-    def __init__(self):
-        self.endpoint = 'https://bff-car-guacamole.musicradio.com'
+    def __init__(self, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
+        self.endpoint = endpoint
         self.headers = {"Accept": "application/vnd.global.5+json"}
         self.root_path: APIPath = '/features'
 
