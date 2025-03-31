@@ -16,7 +16,7 @@ app = sanic.Sanic("incredibleBulkAPI")
 
 app.config.README = Path("README.md").read_text()
 @app.route("/")
-async def root(request):
+async def root(request) -> sanic.HTTPResponse:
     return sanic.response.text(app.config.README)
 
 # Static Gzip serving for local - in production this is handled by nginx
@@ -28,7 +28,7 @@ app.add_route(static_gzip, "/_generated/<path:str>")
 
 # TODO: Consider single fetch
 @app.route("/fetch")
-async def fetch(request: sanic.Request) -> sanic.Response:
+async def fetch(request: sanic.Request) -> sanic.HTTPResponse:
     breakpoint()
     return sanic.response.json({})
     #    params normalised from query_string and body (form or json encoded) as ParamSpecKwargs?

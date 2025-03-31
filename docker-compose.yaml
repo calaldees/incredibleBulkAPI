@@ -3,7 +3,7 @@ services:
   incredible_bulk_api:
     build:
       context: .
-      target: test
+      target: production
     expose:
       - 8000
     ports:
@@ -30,7 +30,7 @@ services:
       - incredible_bulk_api
     working_dir: /usr/share/nginx/html/
     volumes:
-      - nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - logs:/var/log
       - _generated:/app/_generated
 

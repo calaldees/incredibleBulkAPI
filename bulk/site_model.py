@@ -4,7 +4,7 @@ import logging
 import typing as t
 from abc import abstractmethod
 
-from .fetch import fetch_json
+from .fetch import fetch_json_cache, URLParams
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class AbstractSiteModel:
         """
         Perform the actual fetch of data
         """
-        return await fetch_json(url=self.endpoint+path, headers=self.headers)
+        return await fetch_json_cache(URLParams(url=self.endpoint+path, headers=self.headers))
 
     @abstractmethod
     def continue_crawl(

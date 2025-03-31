@@ -104,6 +104,7 @@ async def fetch_json_cache(
     with urllib.request.urlopen(urllib.request.Request(**params._asdict())) as response:
         response_body = response.read()
         response_status = response.status
+        assert 'json' in response.headers.get('content-type', '')
 
     # TODO: async?
     if response_status == 200:
