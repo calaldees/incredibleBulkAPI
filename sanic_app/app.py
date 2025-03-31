@@ -27,12 +27,14 @@ if not app.config.PATH_STATIC.is_dir():
 app.add_route(static_gzip, "/_generated/<path:str>")
 
 # TODO: Consider single fetch
-# @app.route("/fetch")
-# async def fetch(request: sanic.Request) -> sanic.Response:
-#    params normalised from query_string and body (form or json encoded) as ParamSpecKwargs?
-#     return sanic.response.raw(body=await fetch_url(url, method, headers, data), status=200, content_type='application/json', headers={"Age": f"{int(age.total_seconds())}"})
+@app.route("/fetch")
+async def fetch(request: sanic.Request) -> sanic.Response:
+    breakpoint()
+    return sanic.response.json({})
+    #    params normalised from query_string and body (form or json encoded) as ParamSpecKwargs?
+    #     return sanic.response.raw(body=await fetch_url(url, method, headers, data), status=200, content_type='application/json', headers={"Age": f"{int(age.total_seconds())}"})
 
-@app.main_process_start
+#@app.main_process_start
 async def background_task(app):
     # Future: Dynamically import .sites handlers using `importlib`
     # For now - we can import directly
