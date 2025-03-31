@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link id="favicon" rel="shortcut icon" type="image/png" href="data:image/png;base64,....==" />
+    <title>avif</title>
+</head>
+<body>
+<h1>bulk base64,image/avif image preview</h1>
+
+<script type="module">
+    function renderImages(data) {
+        const element = document.body
+        for (let image_base64 of Object.values(data)) {
+            const img = document.createElement('img')
+            img.src = image_base64
+            element.appendChild(img)
+        }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const bulk_image_datafile = urlParams.get('bulk_image_datafile')
+
+    fetch(bulk_image_datafile)
+        .then(response => response.json())
+        .then(renderImages)
+    .catch(err => console.error(err))
+</script>
+</body>
+</html>
