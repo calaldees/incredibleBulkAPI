@@ -6,6 +6,7 @@ dependencies = [
     "sanic[ext]",
     "aiohttp",
 	"ujson",
+	"gzip-stream",
 ]
 
 [project.optional-dependencies]

@@ -1,2 +1,6 @@
+# from .gitignore
+**/_*/
+imagePreviewAPI/
+
+#
 Dockerfile
-_generated

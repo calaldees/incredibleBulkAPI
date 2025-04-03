@@ -1,12 +1,9 @@
 import datetime
-import http.client
 import logging
 import typing as t
 import urllib.request
 from types import MappingProxyType
 from pathlib import Path
-import pickle
-import zlib
 import gzip
 
 import aiohttp
@@ -53,52 +50,54 @@ async def fetch_url(
 
 
 
-
-class URLParams(t.NamedTuple):
+class RequestParams(t.NamedTuple):
     url: str
-    headers: t.Mapping[str, str]
+    headers: frozenset[tuple[str, str]]
     method: str = 'GET'
-    data: str | bytes = b''
+    data: str | bytes = ''
 
     @classmethod
-    def build(cls, url='', headers=MappingProxyType({}), method='GET', data: str | bytes = b'', json: str | Json = ''):
+    def build(cls, url='', headers: t.Mapping[str, str] = MappingProxyType({}), method='GET', data: str | bytes = '', json: str | Json = ''):
         assert url
-        assert bool(data) ^ bool(json)
+        assert not (bool(data) and bool(json))
         if json:
             if isinstance(json, str):
                 data = json
             else:
                 data = ujson.dumps(json)
-                headers = {"Content-Type": "application/json"} | headers
-        return cls(
-            url=url,
-            headers=headers,
-            method=method,
-            data = data,
-        )
+                headers = {"Content-Type": "application/json", **headers}
+        return cls(url=url, headers=frozenset(headers.items()), method=method, data=data)
 
-    @property
-    def hash(self, *args, **kwargs) -> str:
-        return str(zlib.adler32(pickle.dumps(self)))
+    @t.override
+    def _asdict(self) -> dict[str, t.Any]:
+        return super()._asdict() | {'headers': dict(self.headers)}
 
 
 async def fetch_json_cache(
-    params: URLParams,
+    params: RequestParams,
     cache_path: Path = Path('_generated/cache'),
     ttl: datetime.timedelta = datetime.timedelta(minutes=10),
 ) -> Json:
     """
     The cache files can be served by nginx as pre-compressed payloads
     """
-    cache_path = cache_path.joinpath(params.hash+'.json.gz')
+    cache_path = cache_path.joinpath(str(hash(params))+'.json.gz')
 
-    if cache_path.is_file() and (
+    if cache_path.exists() and (
         datetime.datetime.fromtimestamp(cache_path.stat().st_mtime) > datetime.datetime.now() - ttl
     ):
         log.debug(f'loading from cache {params.url=}')
         # TODO: Async?
         with gzip.GzipFile(cache_path, mode='rb') as f:
             return ujson.load(f)
+
+# from gzip_stream import GZIPCompressedStream
+# with open('my_very_big_1tb_file.txt') as file_to_upload:
+#     compressed_stream = GZIPCompressedStream(
+#         file_to_upload,
+#         compression_level=7
+#     )
+#     upload_client.upload_fileobj(compressed_stream)
 
     # TODO: async?
     with urllib.request.urlopen(urllib.request.Request(**params._asdict())) as response:
@@ -108,7 +107,15 @@ async def fetch_json_cache(
 
     # TODO: async?
     if response_status == 200:
+        cache_path.touch()
         with gzip.GzipFile(cache_path, mode='wb') as f:
             f.write(response_body)
 
     return ujson.loads(response_body)
+
+
+class Fetch(t.Protocol):
+    async def fetch_json(self, params: RequestParams) -> Json: ...
+
+# t.Callable[[URLParams], t.Awaitable[APIPayload]]
+# Explanation of t.Awaitable pattern https://stackoverflow.com/a/59177557/3356840

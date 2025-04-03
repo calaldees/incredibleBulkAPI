@@ -6,10 +6,8 @@ import sanic
 
 async def static_gzip(request: sanic.Request, path: Path) -> sanic.HTTPResponse:
     """
-    curl --compressed --url http://localhost:8000/_generated/test.json.gz
-
-    This endpoint exists as a helped to aid local development in python without dependencies
     In production bulk cache files are served directly from nginx
+    This endpoint exists as a helped to aid local development in python without dependencies
     """
     if "gzip" not in request.headers.get("Accept-Encoding", ""):
         raise sanic.exceptions.BadRequest("gzip encoding is required")

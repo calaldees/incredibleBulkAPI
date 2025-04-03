@@ -13,14 +13,16 @@ from bulk.site_model import AbstractSiteModel
 log = logging.getLogger(__name__)
 
 
-def create_background_bulk_crawler_coroutine(
+def create_background_bulk_crawler_task(
     site_model: AbstractSiteModel,
     image_model: AbstractImageModel,
     path_gzip_data: Path,
     path_gzip_images: Path,
     cache_period: datetime.timedelta,
     retry_period: datetime.timedelta,
-) -> t.Coroutine[t.Any, t.Any, t.NoReturn]:
+) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
+
+    semaphore = asyncio.Semaphore(1)
 
     async def generate_bulk_cache():
         log.info(
@@ -39,6 +41,7 @@ def create_background_bulk_crawler_coroutine(
             except Exception as ex:
                 log.exception(ex)
             else:
+                # TODO: Async write?
                 log.info(f"BULK_CACHE: writing {path_gzip_data}")
                 with gzip.open(path_gzip_data, 'wt', encoding='UTF-8') as zipfile:
                     ujson.dump(api_bulk, zipfile)
@@ -49,17 +52,23 @@ def create_background_bulk_crawler_coroutine(
             except Exception as ex:
                 log.exception(ex)
             else:
+                # TODO: Async write?
                 log.info(f"BULK_CACHE: writing {path_gzip_images}")
                 with gzip.open(path_gzip_images, 'wt', encoding='UTF-8') as zipfile:
                     ujson.dump(api_bulk_images, zipfile)
 
 
         while True:
-            if (cache_period - get_age(path_gzip_data)) < datetime.timedelta():
-                log.info(
-                    f"BULK_CACHE: {path_gzip_data=} older than {cache_period=} - regenerating bulk cache"
-                )
-                await _generate_bulk_cache()
+            # Semaphore gate
+            # This process is spawned each time a worker thread/task is created
+            # Only allow one async task to proceed with `_generate_bulk_cache` at a time
+            # Bug: Sadly, when _generate_bulk_cache fails, and does not update the file, all the workers try in sequence again before sleeping
+            async with semaphore:
+                if (cache_period - get_age(path_gzip_data)) < datetime.timedelta():
+                    log.info(
+                        f"BULK_CACHE: {path_gzip_data=} older than {cache_period=} - regenerating bulk cache"
+                    )
+                    await _generate_bulk_cache()
 
             sleep_seconds = int(
                 max(
@@ -72,4 +81,4 @@ def create_background_bulk_crawler_coroutine(
             )
             await asyncio.sleep(sleep_seconds)
 
-    return generate_bulk_cache()
+    return generate_bulk_cache

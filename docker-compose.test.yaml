@@ -1,0 +1,13 @@
+services:
+
+  incredible_bulk_api:
+    build:
+      target: test
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app/:ro
+
+  image_preview_api:
+    ports:
+      - 8001:8000

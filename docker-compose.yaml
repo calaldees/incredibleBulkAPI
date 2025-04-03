@@ -6,11 +6,9 @@ services:
       target: production
     expose:
       - 8000
-    ports:
-      - 8000:8000
     volumes:
+      - logs:/var/log
       - _generated:/app/_generated
-      - persistent_cache:/app/__cache
     depends_on:
       - image_preview_api
 
@@ -19,8 +17,8 @@ services:
       context: imagePreviewAPI/
     expose:
       - 8000
-    ports:
-      - 8001:8000
+    volumes:
+      - logs:/var/log
 
   nginx:
     image: nginx:alpine
@@ -30,12 +28,10 @@ services:
       - incredible_bulk_api
     working_dir: /usr/share/nginx/html/
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - logs:/var/log
       - _generated:/app/_generated
-
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
     logs:
-    persistent_cache:
     _generated:
