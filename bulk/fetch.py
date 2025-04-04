@@ -5,6 +5,8 @@ import urllib.request
 from types import MappingProxyType
 from pathlib import Path
 import gzip
+from dataclasses import dataclass
+from functools import cached_property
 
 import aiohttp
 import ujson
@@ -15,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 type Json = t.Mapping[str, Json | str | int | float | bool] | t.Sequence[Json | str | int | float | bool]
-
+type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[Json]]
 
 @cache_disk(
     ttl=datetime.timedelta(weeks=52)
@@ -51,44 +53,73 @@ async def fetch_url(
 
 
 class RequestParams(t.NamedTuple):
+    """
+    An immutable/hashable representation of all the parameters to make a URL request
+    This NamedTuple can be used as a cache/hash key
+    Pattern: Parameters are prepared independently before a fetch
+    This pattern helps separate the data-fetching for request logic
+
+    This automatically encodes json data for POSTs
+    """
     url: str
     headers: frozenset[tuple[str, str]]
     method: str = 'GET'
-    data: str | bytes = ''
+    data: bytes = b''
 
     @classmethod
-    def build(cls, url='', headers: t.Mapping[str, str] = MappingProxyType({}), method='GET', data: str | bytes = '', json: str | Json = ''):
+    def build(cls, url: str, headers: t.Mapping[str, str] = MappingProxyType({}), method='GET', data: bytes = b'', json: str | Json = '') -> t.Self:
         assert url
-        assert not (bool(data) and bool(json))
+        assert not (bool(data) and bool(json)), 'only `data` or `json` can be provided'
         if json:
-            if isinstance(json, str):
-                data = json
-            else:
-                data = ujson.dumps(json)
-                headers = {"Content-Type": "application/json", **headers}
+            #if isinstance(json, str):
+            #    data = json
+            #else:
+            data = ujson.dumps(json).encode('utf8')
+            headers = {"Content-Type": "application/json", **headers}
         return cls(url=url, headers=frozenset(headers.items()), method=method, data=data)
 
-    @t.override
-    def _asdict(self) -> dict[str, t.Any]:
-        return super()._asdict() | {'headers': dict(self.headers)}
+    def asdict(self) -> dict[str, t.Any]:
+        return self._asdict() | {'headers': dict(self.headers)}
+
+
+@dataclass(frozen=True)
+class CachePath():
+    path: Path = Path('_generated/cache')
+    ttl: datetime.timedelta = datetime.timedelta(minutes=10)
+    def __post_init__(self):
+        self.path.mkdir(exist_ok=True)
+
+
+@dataclass(frozen=True)
+class CacheFile():
+    params: RequestParams
+    cache_path: CachePath
+
+    @cached_property
+    def path(self) -> Path:
+        return self.cache_path.path.joinpath(str(hash(self.params))+'.json.gz')
+
+    @property
+    def expired(self) -> bool:
+        return (
+            not self.path.exists() or
+            datetime.datetime.fromtimestamp(self.path.stat().st_mtime) < datetime.datetime.now() - self.cache_path.ttl
+        )
 
 
 async def fetch_json_cache(
     params: RequestParams,
-    cache_path: Path = Path('_generated/cache'),
-    ttl: datetime.timedelta = datetime.timedelta(minutes=10),
+    cache_path: CachePath,
 ) -> Json:
     """
     The cache files can be served by nginx as pre-compressed payloads
     """
-    cache_path = cache_path.joinpath(str(hash(params))+'.json.gz')
+    cache_file = CacheFile(params, cache_path)
 
-    if cache_path.exists() and (
-        datetime.datetime.fromtimestamp(cache_path.stat().st_mtime) > datetime.datetime.now() - ttl
-    ):
+    if not cache_file.expired:
         log.debug(f'loading from cache {params.url=}')
         # TODO: Async?
-        with gzip.GzipFile(cache_path, mode='rb') as f:
+        with gzip.GzipFile(cache_file.path, mode='rb') as f:
             return ujson.load(f)
 
 # from gzip_stream import GZIPCompressedStream
@@ -100,22 +131,21 @@ async def fetch_json_cache(
 #     upload_client.upload_fileobj(compressed_stream)
 
     # TODO: async?
-    with urllib.request.urlopen(urllib.request.Request(**params._asdict())) as response:
+    with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
         response_body = response.read()
         response_status = response.status
         assert 'json' in response.headers.get('content-type', '')
 
     # TODO: async?
     if response_status == 200:
-        cache_path.touch()
-        with gzip.GzipFile(cache_path, mode='wb') as f:
+        with gzip.GzipFile(cache_file.path, mode='wb') as f:
             f.write(response_body)
 
     return ujson.loads(response_body)
 
 
-class Fetch(t.Protocol):
-    async def fetch_json(self, params: RequestParams) -> Json: ...
+#class Fetch(t.Protocol):
+#    async def fetch_json(self, params: RequestParams) -> Json: ...
 
 # t.Callable[[URLParams], t.Awaitable[APIPayload]]
 # Explanation of t.Awaitable pattern https://stackoverflow.com/a/59177557/3356840

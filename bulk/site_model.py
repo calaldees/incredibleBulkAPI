@@ -13,13 +13,14 @@ type APIPath = str
 type APIDepth = int
 type APIPayload = t.Mapping[str, t.Any] | t.Sequence[t.Any]
 type APIBulk = t.Mapping[APIPath, APIPayload]
+type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[APIPayload]]
 
 
 class AbstractSiteModel:
     endpoint: str
     root_path: APIPath = "/"
     headers: t.Mapping[str, str] = {}
-    fetch: t.Callable[[RequestParams], t.Awaitable[APIPayload]]
+    fetch_json: FetchJsonCallable
 
     async def crawl(self) -> APIBulk:
         cache: APIBulk = {}
@@ -44,7 +45,7 @@ class AbstractSiteModel:
         """
         Perform the actual fetch of data
         """
-        return await self.fetch(RequestParams.build(url=self.endpoint+path, headers=self.headers))
+        return await self.fetch_json(RequestParams.build(url=self.endpoint+path, headers=self.headers))
 
     @abstractmethod
     def continue_crawl(

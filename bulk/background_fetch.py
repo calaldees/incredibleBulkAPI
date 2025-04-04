@@ -40,6 +40,7 @@ def create_background_bulk_crawler_task(
                 api_bulk = await site_model.crawl()
             except Exception as ex:
                 log.exception(ex)
+                return
             else:
                 # TODO: Async write?
                 log.info(f"BULK_CACHE: writing {path_gzip_data}")

@@ -7,6 +7,7 @@ services:
       - 8000:8000
     volumes:
       - .:/app/:ro
+      - ./_generated:/app/_generated
 
   image_preview_api:
     ports:

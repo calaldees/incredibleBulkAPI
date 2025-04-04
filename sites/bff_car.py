@@ -3,12 +3,13 @@ import typing as t
 
 from bulk.data import crawl_for_key, get_path
 from bulk.image_model import AbstractImageModel, ImageUrl
-from bulk.site_model import AbstractSiteModel, APIBulk, APIDepth, APIPath, APIPayload
+from bulk.site_model import AbstractSiteModel, APIBulk, APIDepth, APIPath, APIPayload, FetchJsonCallable
 
 
 class BffCarSiteModel(AbstractSiteModel):
 
-    def __init__(self, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
+    def __init__(self, fetch_json: FetchJsonCallable, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
+        self.fetch_json = fetch_json
         self.endpoint = endpoint
         self.headers = {"Accept": "application/vnd.global.5+json"}
         self.root_path: APIPath = '/features'

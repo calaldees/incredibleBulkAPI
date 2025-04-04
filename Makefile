@@ -11,17 +11,17 @@ DOCKER_DEV:=docker compose --file docker-compose.yaml --file docker-compose.test
 help:	## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2 } END{print ""}' $(MAKEFILE_LIST)
 
-run: imagePreviewAPI  ## run container stack
+run: imagePreviewAPI  ## run production container stack
 	docker compose up --build
-build: imagePreviewAPI ## build containers (needed for `make shell`)
+build: imagePreviewAPI ## build test containers (needed for `make shell`)
 	${DOCKER_DEV} build
-shell:  ## dev shell (mounting '.' to workdir) (no `nginx`)
+shell:  ## development shell (mounting '.' to workdir) (no `nginx`)
 	${DOCKER_DEV} run --rm -it incredible_bulk_api /bin/sh
 	docker compose down
-run_local:  ## launch app (when in container)
-	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug --noisy-exceptions --no-motd
+run_local:  ## launch app (when in `shell`)
+	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug --noisy-exceptions --no-motd --single-process
 	# --verbosity
-	# --single-process
+	# 
 
 imagePreviewAPI:
 	git clone https://github.com/calaldees/imagePreviewAPI.git
