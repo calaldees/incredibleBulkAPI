@@ -1,6 +1,7 @@
 # from .gitignore
-**/_*/
-static_json_gzip/
+#**/[._]*/   # something is wrong - I want folders be excluded - this excludes `__init__.py` as well .. 
+**/__pycache__/
+static_json_gzip/*
 imagePreviewAPI/
 
 #

@@ -18,6 +18,9 @@ test = [
 	"types-ujson",
 ]
 
+[tool.setuptools]
+py-modules = []
+
 [tool.mypy]
 [[tool.mypy.overrides]]
 module = "mypy-sanic_ext.*"

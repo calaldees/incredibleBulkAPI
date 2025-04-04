@@ -33,8 +33,9 @@ class AbstractSiteModel:
             log.info(
                 f"to_crawl={len(to_crawl)} fetched={len(cache.keys())} {api_path=}"
             )
-            if len(cache.keys()) > 5:  # TEMP! to test!!
-                   break
+            # TODO: put this limiter behind an ENV var to allow people a lightweight demo?
+            #if len(cache.keys()) > 5:  # TEMP! to test!!
+            #    break
             payload = await self.get_api_path(api_path)
             cache[api_path] = payload
             if not self.continue_crawl(api_path, depth, payload):
