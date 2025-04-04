@@ -30,6 +30,7 @@ services:
     volumes:
       - logs:/var/log
       - static_json_gzip:/app/static_json_gzip
+      #- ./static_json_gzip:/app/static_json_gzip
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:

@@ -17,16 +17,20 @@ app.config.README = Path("README.md").read_text()
 @app.route("/")
 async def root(request) -> sanic.HTTPResponse:
     return sanic.response.text(app.config.README)
+@app.route("/favicon.ico")
+async def favicon(request) -> sanic.HTTPResponse:
+    return sanic.response.convenience.empty()  # suppress browser exception spam
 
 
 # Static Gzip serving for local only - in production this is handled by nginx
 # app.ext.add_dependency(Path, lambda **kwargs: Path(kwargs['path']))
-app.config.PATH_STATIC = Path("./static_json_gzip")
+app.config.PATH_STATIC = Path("./static_json_gzip/")
 if not app.config.PATH_STATIC.is_dir():
     raise Exception(f"{app.config.PATH_STATIC=} must exist")
 from .static_gzip import static_json_gzip
-app.add_route(static_json_gzip, "/static_json_gzip/<path:str>")
-# curl --compressed --url http://localhost:8000/static_json_gzip/test.json (should be encoded gzip)
+app.add_route(static_json_gzip, "/static_json_gzip/<path:path>")
+# curl --compressed --url http://localhost:8000/static_json_gzip/bff-car.json (should be encoded gzip)
+# curl --compressed --url http://localhost:8000/static_json_gzip/cache/-28682793412047709.json
 
 
 from bulk.fetch import RequestParams, CachePath, CacheFile
@@ -44,7 +48,9 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
         params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
         cache_path=cache_path,
     )
-    return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=cache_file.file))
+    return sanic.response.convenience.redirect(
+        to=app.url_for('static_json_gzip', path=cache_file.file.removesuffix('.gz'))
+    )
 
 
 from bulk.fetch import FetchJsonCallable, fetch_json_cache

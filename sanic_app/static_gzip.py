@@ -12,6 +12,9 @@ async def static_json_gzip(request: sanic.Request, path: Path) -> sanic.HTTPResp
     if "gzip" not in request.headers.get("Accept-Encoding", ""):
         raise sanic.exceptions.BadRequest("gzip encoding is required")
     path: Path = request.app.config.PATH_STATIC.joinpath(path)
+    if path.suffix != '.json':
+        raise sanic.exceptions.BadRequest("only json files can be served")
+    path = path.parent.joinpath(path.name + '.gz')
     if not path.exists():
         # 307 - TEMPORARY REDIRECT - https://stackoverflow.com/a/12281287/3356840
         # Firefox does not seem to understand the 'Retry-After'
@@ -27,7 +30,7 @@ async def static_json_gzip(request: sanic.Request, path: Path) -> sanic.HTTPResp
         "Content-Length": str(path.stat().st_size),
     }
     if request.method == 'GET':
-        return await sanic.response.file_stream(path, headers=headers)  # Check: is `await` needed here?
+        return await sanic.response.file_stream(path, headers=headers)
     if request.method == 'HEAD':
         return sanic.response.HTTPResponse(headers=headers)
     raise sanic.exceptions.MethodNotSupported()

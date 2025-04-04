@@ -21,7 +21,6 @@ shell:  ## development shell (mounting '.' to workdir) (no `nginx`)
 run_local:  ## launch app (when in `shell`)
 	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug --noisy-exceptions --no-motd --single-process
 	# --verbosity
-	# 
 
 imagePreviewAPI:
 	git clone https://github.com/calaldees/imagePreviewAPI.git

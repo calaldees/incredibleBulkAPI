@@ -19,9 +19,9 @@ log = logging.getLogger(__name__)
 type Json = t.Mapping[str, Json | str | int | float | bool] | t.Sequence[Json | str | int | float | bool]
 type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[Json]]
 
-@cache_disk(
-    ttl=datetime.timedelta(weeks=52)
-)  # TODO: can timedelta for cache be configured per site?
+#@cache_disk(
+#    ttl=datetime.timedelta(weeks=52)
+#)  # TODO: can timedelta for cache be configured per site?
 async def fetch_url(
     url: str,
     headers: dict[str, str],
