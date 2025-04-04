@@ -1,5 +1,6 @@
 # from .gitignore
 **/_*/
+static_json_gzip/
 imagePreviewAPI/
 
 #

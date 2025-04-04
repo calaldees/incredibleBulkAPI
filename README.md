@@ -4,8 +4,8 @@
 
 ---
 
-http://localhost:8000/_generated/bff-car.json.gz
-http://localhost:8000/_generated/bff-car-images.json.gz
+http://localhost:8000/static_json_gzip/bff-car.json
+http://localhost:8000/static_json_gzip/bff-car-images.json
 
 ---
 
@@ -48,9 +48,9 @@ graph TD
     end
 
     subgraph filesystem
-        /_generated_/[(/_generated/)]
+        /_static_json_gzip_/[(/static_json_gzip/)]
     end
 
-    /_generated_/ --> nginx
-    incredible_bulk_api -- gzip --> /_generated_/
+    /static_json_gzip/ --> nginx
+    incredible_bulk_api -- gzip --> /static_json_gzip/
 ```

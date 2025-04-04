@@ -21,16 +21,16 @@ async def root(request) -> sanic.HTTPResponse:
 
 # Static Gzip serving for local only - in production this is handled by nginx
 # app.ext.add_dependency(Path, lambda **kwargs: Path(kwargs['path']))
-from .static_gzip import static_gzip
-app.config.PATH_STATIC = Path("_generated")
+app.config.PATH_STATIC = Path("./static_json_gzip")
 if not app.config.PATH_STATIC.is_dir():
     raise Exception(f"{app.config.PATH_STATIC=} must exist")
-app.add_route(static_gzip, "/_generated/<path:str>")
-# curl --compressed --url http://localhost:8000/_generated/test.json.gz
+from .static_gzip import static_json_gzip
+app.add_route(static_json_gzip, "/static_json_gzip/<path:str>")
+# curl --compressed --url http://localhost:8000/static_json_gzip/test.json (should be encoded gzip)
 
 
 from bulk.fetch import RequestParams, CachePath, CacheFile
-cache_path = cache_path=CachePath(
+cache_path = CachePath(
     path=app.config.PATH_STATIC.joinpath('cache'),
     ttl=datetime.timedelta(minutes=5),
 )
@@ -44,7 +44,7 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
         params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
         cache_path=cache_path,
     )
-    return sanic.response.convenience.redirect(to=app.url_for('static_gzip', path=cache_file.file))
+    return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=cache_file.file))
 
 
 from bulk.fetch import FetchJsonCallable, fetch_json_cache

@@ -60,6 +60,14 @@ class RequestParams(t.NamedTuple):
     This pattern helps separate the data-fetching for request logic
 
     This automatically encodes json data for POSTs
+
+    consider being compatible with other request types
+    httpx - https://www.python-httpx.org/api/#request
+        method, url, [params], [headers], [cookies], [content], [data], [files], [json], [stream]
+    urllib - https://docs.python.org/3/library/urllib.request.html#urllib.request.Request
+        url, data=None, headers={}, origin_req_host=None, unverifiable=False, method=None
+    requests - https://requests.readthedocs.io/en/latest/api/#requests.request
+        method, url [params], data, json, headers, cookies, files, auth, timeout, allow_redirects, stream
     """
     url: str
     headers: frozenset[tuple[str, str]]
@@ -84,7 +92,7 @@ class RequestParams(t.NamedTuple):
 
 @dataclass(frozen=True)
 class CachePath():
-    path: Path = Path('_generated/cache')
+    path: Path = Path('static_json_gzip/cache')
     ttl: datetime.timedelta = datetime.timedelta(minutes=10)
     def __post_init__(self):
         self.path.mkdir(exist_ok=True)
