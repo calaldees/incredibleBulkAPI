@@ -74,7 +74,7 @@ def crawl_for_key(data: Mapping | Sequence, key):
     ...                                     },
     ...                                 },
     ...                             },
-    ...                             enabled: 'true',
+    ...                             'enabled': 'true',
     ...                         },
     ...                     ],
     ...                     'primary_action': {
@@ -92,7 +92,7 @@ def crawl_for_key(data: Mapping | Sequence, key):
     ...     ],
     ... }
     >>> tuple(crawl_for_key(data, 'primary_action'))
-    ({'type': 'navigate', 'payload': {'link': {'type': 'feature', 'href': '/v1/playable_list/2TzewA'}}},)
+    ({'type': 'navigate', 'payload': {'link': {'type': 'item_list', 'href': '/v1/playable_list/2TzewA'}}}, {'type': 'navigate', 'payload': {'link': {'type': 'item_list', 'href': '/v1/playable_list/42Kuap'}}})
     """
     # match type(data):
     #    case Mapping():

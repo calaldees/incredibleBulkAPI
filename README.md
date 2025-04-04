@@ -67,3 +67,8 @@ graph TD
 
     fetch -- 302 --> cache_data
 ```
+
+TODO
+----
+
+* Massive omission ... http requests are not async!!!

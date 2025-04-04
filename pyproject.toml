@@ -3,11 +3,10 @@ name = "incredibleBulkAPI"
 version = "0.0.0"
 readme = "README.md"
 dependencies = [
-    "sanic[ext]",
-    "aiohttp",
+	"sanic[ext]",
 	"ujson",
-	"gzip-stream",
-	#"typed-settings",
+	"aiohttp",
+	#"gzip-stream",
 ]
 
 [project.optional-dependencies]
@@ -26,4 +25,4 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--doctest-modules -p no:cacheprovider"
+addopts = "--doctest-modules -p no:cacheprovider --ignore=imagePreviewAPI"

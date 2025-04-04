@@ -20,6 +20,8 @@ class BffCarSiteModel(AbstractSiteModel):
     @t.override
     def extract_crawl_paths(self, path: APIPath, payload: APIPayload) -> t.Iterable[APIPath]:
         """
+        >>> from functools import partial
+        >>> extract_crawl_paths = partial(BffCarSiteModel.extract_crawl_paths, None)
         >>> extract_crawl_paths(None, {})
         set()
         >>> extract_crawl_paths(

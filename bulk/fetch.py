@@ -107,17 +107,17 @@ async def fetch_json_cache(
 
     if not cache_file.expired:
         log.debug(f'loading from cache {params.url=}')
-        # TODO: Async?
+        # TODO: async gzip-stream
         with gzip.GzipFile(cache_file.path, mode='rb') as f:
             return ujson.load(f)
 
-    # TODO: async?
+    # TODO: async aiohttp
     with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
         response_body = response.read()
         response_status = response.status
         assert 'json' in response.headers.get('content-type', '')
 
-    # TODO: async?
+    # TODO: async gzip-stream
     if response_status == 200:
         with gzip.GzipFile(cache_file.path, mode='wb') as f:
             f.write(response_body)
@@ -142,6 +142,7 @@ async def fetch_image_preview_cache(
         log.debug(f'loading from cache {image_url=}')
         return cache_file.path.read_text()
 
+    # TODO: async aiohttp
     log.info(f"fetch image preview for {image_url[-8:]}")
     with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
         response_body = response.read()
