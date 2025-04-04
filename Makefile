@@ -17,7 +17,9 @@ build: imagePreviewAPI ## build test containers (needed for `make shell`)
 	${DOCKER_DEV} build
 shell:  ## development shell (mounting '.' to workdir) (no `nginx`)
 	${DOCKER_DEV} run --rm -it --service-ports incredible_bulk_api /bin/sh
-	docker compose down
+	${DOCKER_DEV} down
+stop:
+	${DOCKER_DEV} down
 run_local:  ## launch app (when in `shell`)
 	python3 -m sanic --host 0.0.0.0 sanic_app.app:app --debug --noisy-exceptions --no-motd --single-process
 	# --verbosity

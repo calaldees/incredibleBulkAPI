@@ -2,7 +2,7 @@ import re
 import typing as t
 
 from bulk.data import crawl_for_key, get_path
-from bulk.image_model import AbstractImageModel, ImageUrl
+from bulk.image_model import AbstractImageModel, ImageUrl, FetchImageBase64Callable
 from bulk.site_model import AbstractSiteModel, APIBulk, APIDepth, APIPath, APIPayload, FetchJsonCallable
 
 
@@ -63,11 +63,13 @@ class BffCarSiteModel(AbstractSiteModel):
 
 
 class BffCarImageModel(AbstractImageModel):
-
     ALLOWED_URL_REGEX = (
         re.compile("/features/.*"),
         re.compile("/catchup/.*"),
     )
+
+    def __init__(self, fetch_image_preview_base64: FetchImageBase64Callable):
+        self.fetch_image_preview_base64 = fetch_image_preview_base64
 
     @t.override
     def extract_image_urls(self, data: APIBulk) -> t.Iterable[ImageUrl]:

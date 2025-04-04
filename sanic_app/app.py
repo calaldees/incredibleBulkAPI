@@ -34,9 +34,9 @@ app.add_route(static_json_gzip, "/static_json_gzip/<path:path>")
 
 
 from bulk.fetch import RequestParams, CachePath, CacheFile
-cache_path = CachePath(
+cache_path_data = CachePath(
     path=app.config.PATH_STATIC.joinpath('cache'),
-    ttl=datetime.timedelta(minutes=5),
+    ttl=datetime.timedelta(minutes=600),  # TODO: should be inline with bulk cache time .. maye same variable?
 )
 @app.route("/fetch")
 async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
@@ -46,16 +46,23 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
         raise sanic.exceptions.BadRequest('url missing')
     cache_file = CacheFile(
         params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
-        cache_path=cache_path,
+        cache_path=cache_path_data,
+        file_suffix='.json.gz',
     )
     path = str(cache_file.path.relative_to(app.config.PATH_STATIC)).removesuffix('.gz')
     return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=path))
 
 
-from bulk.fetch import FetchJsonCallable, fetch_json_cache
-fetch: FetchJsonCallable = partial(
+
+from bulk.fetch import FetchJsonCallable, FetchImageBase64Callable, fetch_json_cache, fetch_image_preview_cache
+fetch_json: FetchJsonCallable = partial(
     fetch_json_cache,
-    cache_path=cache_path,
+    cache_path=cache_path_data,
+)
+fetch_image_preview: FetchImageBase64Callable = partial(
+    fetch_image_preview_cache,
+    cache_path=CachePath(path=app.config.PATH_STATIC.joinpath('images'), ttl=datetime.timedelta(weeks=52)),
+    image_preview_service_endpoint="http://image_preview_api:8000",
 )
 from bulk.background_fetch import create_background_bulk_crawler_task
 from sites.bff_car import BffCarImageModel, BffCarSiteModel
@@ -65,11 +72,11 @@ from sites.bff_car import BffCarImageModel, BffCarSiteModel
 # will have to think about the cache_period
 app.add_task(
     create_background_bulk_crawler_task(
-        site_model=BffCarSiteModel(fetch),
-        image_model=BffCarImageModel(),
+        site_model=BffCarSiteModel(fetch_json),
+        image_model=BffCarImageModel(fetch_image_preview),
         path_gzip_data=app.config.PATH_STATIC.joinpath("bff-car.json.gz"),
         path_gzip_images=app.config.PATH_STATIC.joinpath("bff-car-images.json.gz"),
-        cache_period=datetime.timedelta(minutes=2),  # hours=1
-        retry_period=datetime.timedelta(seconds=10),
+        cache_period=datetime.timedelta(hours=1, minutes=1),
+        retry_period=datetime.timedelta(minutes=5, seconds=10),
     )
 )

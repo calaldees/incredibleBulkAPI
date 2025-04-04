@@ -14,10 +14,8 @@ log = logging.getLogger(__name__)
 
 type ImageUrl = str
 type Base64EncodedImage = str
+type FetchImageBase64Callable = t.Callable[[ImageUrl], t.Awaitable[Base64EncodedImage]]
 type APIBulkImages = t.Mapping[ImageUrl, Base64EncodedImage]
-
-
-IMAGE_PREVIEW_SERVICE = "http://image_preview_api:8000"
 
 
 def progress_debug(iterable: t.Iterable):
@@ -29,35 +27,14 @@ def progress_debug(iterable: t.Iterable):
         yield i
 
 
-
 class AbstractImageModel:
+    fetch_image_preview_base64: FetchImageBase64Callable
 
     async def image_previews(self, api_bulk: APIBulk) -> APIBulkImages:
         return {
-            image_url: await self.get_image_preview_avif_base64(image_url)
+            image_url: await self.fetch_image_preview_base64(image_url)
             for image_url in self.extract_image_urls(api_bulk)
         }
-
-    async def get_image_preview_avif_base64(self, image_url: ImageUrl) -> Base64EncodedImage:
-        log.info(f"fetch image preview for {image_url[-8:]}")
-        try:
-            return (
-                (
-                    await fetch_url(
-                        method="POST",
-                        url=image_url,
-                        data=json.dumps({"url": image_url}),
-                        headers={"Content-Type": "application/json"},
-                    )
-                )
-                .decode("utf8")
-            )
-            # response = await client.post(IMAGE_PREVIEW_SERVICE,json={'url': image_url})
-            # if response and response.status_code == 200:
-            #   return response.text
-        except Exception as ex:
-            log.exception(ex)
-        return ""
 
     @abstractmethod
     def extract_image_urls(self, data: APIBulk) -> t.Iterable[ImageUrl]:

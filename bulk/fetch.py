@@ -5,8 +5,10 @@ import urllib.request
 from types import MappingProxyType
 from pathlib import Path
 import gzip
-from dataclasses import dataclass
+import dataclasses
 from functools import cached_property
+from zlib import adler32
+import pickle
 
 import aiohttp
 import ujson
@@ -18,6 +20,11 @@ log = logging.getLogger(__name__)
 
 type Json = t.Mapping[str, Json | str | int | float | bool] | t.Sequence[Json | str | int | float | bool]
 type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[Json]]
+
+type ImageUrl = str
+type Base64EncodedImage = str
+type FetchImageBase64Callable = t.Callable[[ImageUrl], t.Awaitable[Base64EncodedImage]]
+
 
 #@cache_disk(
 #    ttl=datetime.timedelta(weeks=52)
@@ -52,7 +59,8 @@ async def fetch_url(
 
 
 
-class RequestParams(t.NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class RequestParams():
     """
     An immutable/hashable representation of all the parameters to make a URL request
     This NamedTuple can be used as a cache/hash key
@@ -87,10 +95,13 @@ class RequestParams(t.NamedTuple):
         return cls(url=url, headers=frozenset(headers.items()), method=method, data=data)
 
     def asdict(self) -> dict[str, t.Any]:
-        return self._asdict() | {'headers': dict(self.headers)}
+        return dataclasses.asdict(self) | {'headers': dict(self.headers)}
+
+    def __hash__(self) -> int:
+        return adler32(pickle.dumps(dataclasses.astuple(self)))  # stable data hash
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class CachePath():
     path: Path = Path('static_json_gzip/cache')
     ttl: datetime.timedelta = datetime.timedelta(minutes=10)
@@ -98,14 +109,15 @@ class CachePath():
         self.path.mkdir(exist_ok=True)
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class CacheFile():
     params: RequestParams
     cache_path: CachePath
+    file_suffix: str = '.raw'
 
     @cached_property
     def file(self) -> str:
-        return str(hash(self.params))+'.json.gz'
+        return str(hash(self.params))+self.file_suffix
 
     @cached_property
     def path(self) -> Path:
@@ -126,7 +138,7 @@ async def fetch_json_cache(
     """
     The cache files can be served by nginx as pre-compressed payloads
     """
-    cache_file = CacheFile(params, cache_path)
+    cache_file = CacheFile(params, cache_path, file_suffix='.json.gz')
 
     if not cache_file.expired:
         log.debug(f'loading from cache {params.url=}')
@@ -143,6 +155,7 @@ async def fetch_json_cache(
 #     upload_client.upload_fileobj(compressed_stream)
 
     # TODO: async?
+    breakpoint()
     with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
         response_body = response.read()
         response_status = response.status
@@ -161,3 +174,32 @@ async def fetch_json_cache(
 
 # t.Callable[[URLParams], t.Awaitable[APIPayload]]
 # Explanation of t.Awaitable pattern https://stackoverflow.com/a/59177557/3356840
+
+
+
+async def fetch_image_preview_cache(
+    image_url: ImageUrl,
+    cache_path: CachePath,
+    image_preview_service_endpoint: str
+) -> Base64EncodedImage:
+    params = RequestParams.build(
+        method="POST",
+        url=image_preview_service_endpoint,
+        json={"url": image_url},
+    )
+    cache_file = CacheFile(params, cache_path, file_suffix='.txt')
+
+    if not cache_file.expired:
+        log.debug(f'loading from cache {image_url=}')
+        return cache_file.path.read_text()
+
+    log.info(f"fetch image preview for {image_url[-8:]}")
+    with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
+        response_body = response.read()
+        response_status = response.status
+        assert 'text' in response.headers.get('content-type', '')
+
+    if response_status == 200:
+        cache_file.path.write_bytes(response_body)
+
+    return response_body.decode('utf8')

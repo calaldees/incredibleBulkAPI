@@ -82,5 +82,4 @@ def create_background_bulk_crawler_task(
             )
             await asyncio.sleep(sleep_seconds)
 
-    return None
     return generate_bulk_cache
