@@ -96,8 +96,12 @@ class CacheFile():
     cache_path: CachePath
 
     @cached_property
+    def file(self) -> str:
+        return str(hash(self.params))+'.json.gz'
+
+    @cached_property
     def path(self) -> Path:
-        return self.cache_path.path.joinpath(str(hash(self.params))+'.json.gz')
+        return self.cache_path.path.joinpath(self.file)
 
     @property
     def expired(self) -> bool:

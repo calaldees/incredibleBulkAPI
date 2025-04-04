@@ -10,6 +10,8 @@ import sanic
 logging.basicConfig(level=logging.DEBUG)
 
 app = sanic.Sanic("incredibleBulkAPI")
+app.config.FALLBACK_ERROR_FORMAT = 'json'
+
 
 app.config.README = Path("README.md").read_text()
 @app.route("/")
@@ -34,16 +36,16 @@ cache_path = cache_path=CachePath(
 )
 @app.route("/fetch")
 async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
-    # TODO:
-    breakpoint()
-    #RequestParams()
-    request.args
-    request.form
-    request.json
-    #sanic.response.
-    return sanic.response.json({})
-    #    params normalised from query_string and body (form or json encoded) as ParamSpecKwargs?
-    #     return sanic.response.raw(body=await fetch_url(url, method, headers, data), status=200, content_type='application/json', headers={"Age": f"{int(age.total_seconds())}"})
+    params: dict[str, str] = {**dict(request.query_args), **request.form, **(request.json or {})}
+    url = params.pop('url', '')
+    if not url:
+        raise sanic.exceptions.BadRequest('url missing')
+    cache_file = CacheFile(
+        params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
+        cache_path=cache_path,
+    )
+    return sanic.response.convenience.redirect(to=app.url_for('static_gzip', path=cache_file.file))
+
 
 from bulk.fetch import FetchJsonCallable, fetch_json_cache
 fetch: FetchJsonCallable = partial(

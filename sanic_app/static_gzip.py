@@ -14,17 +14,20 @@ async def static_gzip(request: sanic.Request, path: Path) -> sanic.HTTPResponse:
     path: Path = request.app.config.PATH_STATIC.joinpath(path)
     if not path.exists():
         # 307 - TEMPORARY REDIRECT - https://stackoverflow.com/a/12281287/3356840
+        # Firefox does not seem to understand the 'Retry-After'
         #return sanic.response.redirect(request.path, status=307, headers={"Retry-After": 360})
         raise sanic.exceptions.NotFound()
     age: datetime.timedelta = datetime.datetime.now() - datetime.datetime.fromtimestamp(path.stat().st_mtime)
     #cache_period = request.app.ctx.BULK_CACHE_REGEN_PERIOD
-    return await sanic.response.file_stream(
-        path,
-        headers={
-            #"Cache-Control": f"max-age={int((cache_period - age).total_seconds())}",  # TODO
-            "Age": f"{int(age.total_seconds())}",
-            "Content-Encoding": "gzip",
-            "Content-Type": "application/json",
-            "Content-Length": str(path.stat().st_size),
-        },
-    )
+    headers = {
+        #"Cache-Control": f"max-age={int((cache_period - age).total_seconds())}",  # TODO
+        "Age": f"{int(age.total_seconds())}",
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/json",
+        "Content-Length": str(path.stat().st_size),
+    }
+    if request.method == 'GET':
+        return await sanic.response.file_stream(path, headers=headers)  # Check: is `await` needed here?
+    if request.method == 'HEAD':
+        return sanic.response.HTTPResponse(headers=headers)
+    raise sanic.exceptions.MethodNotSupported()
