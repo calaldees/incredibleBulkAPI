@@ -48,9 +48,8 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
         params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
         cache_path=cache_path,
     )
-    return sanic.response.convenience.redirect(
-        to=app.url_for('static_json_gzip', path=cache_file.file.removesuffix('.gz'))
-    )
+    path = str(cache_file.path.relative_to(app.config.PATH_STATIC)).removesuffix('.gz')
+    return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=path))
 
 
 from bulk.fetch import FetchJsonCallable, fetch_json_cache
