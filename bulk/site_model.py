@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import typing as t
 from abc import abstractmethod
@@ -17,10 +18,12 @@ type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[APIPayload]]
 
 
 class AbstractSiteModel:
+    name: str
     endpoint: str
     root_path: APIPath = "/"
     headers: t.Mapping[str, str] = {}
     fetch_json: FetchJsonCallable
+    cache_period: datetime.timedelta
 
     async def crawl(self) -> APIBulk:
         cache: APIBulk = {}
@@ -30,8 +33,8 @@ class AbstractSiteModel:
             log.info(
                 f"to_crawl={len(to_crawl)} fetched={len(cache.keys())} {api_path=}"
             )
-            #if len(cache.keys()) > 5:  # TEMP! to test!!
-            #       break
+            if len(cache.keys()) > 5:  # TEMP! to test!!
+                   break
             payload = await self.get_api_path(api_path)
             cache[api_path] = payload
             if not self.continue_crawl(api_path, depth, payload):

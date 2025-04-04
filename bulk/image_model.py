@@ -4,9 +4,6 @@ import logging
 import typing as t
 from abc import abstractmethod
 
-import ujson as json
-
-from .fetch import fetch_url
 from .site_model import APIBulk
 
 log = logging.getLogger(__name__)
@@ -28,6 +25,7 @@ def progress_debug(iterable: t.Iterable):
 
 
 class AbstractImageModel:
+    name: str
     fetch_image_preview_base64: FetchImageBase64Callable
 
     async def image_previews(self, api_bulk: APIBulk) -> APIBulkImages:

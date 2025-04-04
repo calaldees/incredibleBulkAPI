@@ -6,12 +6,11 @@ from functools import partial
 import sanic
 #from sanic.log import logger as log
 
-
 logging.basicConfig(level=logging.DEBUG)
+
 
 app = sanic.Sanic("incredibleBulkAPI")
 app.config.FALLBACK_ERROR_FORMAT = 'json'
-
 
 app.config.README = Path("README.md").read_text()
 @app.route("/")
@@ -20,6 +19,8 @@ async def root(request) -> sanic.HTTPResponse:
 @app.route("/favicon.ico")
 async def favicon(request) -> sanic.HTTPResponse:
     return sanic.response.convenience.empty()  # suppress browser exception spam
+
+app.static('/static/', Path('static/'))
 
 
 # Static Gzip serving for local only - in production this is handled by nginx
@@ -34,16 +35,14 @@ app.add_route(static_json_gzip, "/static_json_gzip/<path:path>")
 
 
 from bulk.fetch import RequestParams, CachePath, CacheFile
-cache_path_data = CachePath(
-    path=app.config.PATH_STATIC.joinpath('cache'),
-    ttl=datetime.timedelta(minutes=600),  # TODO: should be inline with bulk cache time .. maye same variable?
-)
+cache_path_data = CachePath(path=app.config.PATH_STATIC.joinpath('cache'))
 @app.route("/fetch")
 async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
     params: dict[str, str] = {**dict(request.query_args), **request.form, **(request.json or {})}
     url = params.pop('url', '')
     if not url:
         raise sanic.exceptions.BadRequest('url missing')
+    # resolve the `cache_file` in the same way that `fetch_json_cache` builds filenames
     cache_file = CacheFile(
         params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
         cache_path=cache_path_data,
@@ -55,28 +54,23 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
 
 
 from bulk.fetch import FetchJsonCallable, FetchImageBase64Callable, fetch_json_cache, fetch_image_preview_cache
+from bulk.background_fetch import create_background_bulk_crawler_task
+from sites.bff_car import BffCarImageModel, BffCarSiteModel
+# Future: Dynamically import .sites handlers using `importlib`
+# For now - we can import directly
 fetch_json: FetchJsonCallable = partial(
     fetch_json_cache,
-    cache_path=cache_path_data,
+    cache_path=CachePath(path=cache_path_data.path, ttl=BffCarSiteModel.cache_period)
 )
 fetch_image_preview: FetchImageBase64Callable = partial(
     fetch_image_preview_cache,
     cache_path=CachePath(path=app.config.PATH_STATIC.joinpath('images'), ttl=datetime.timedelta(weeks=52)),
     image_preview_service_endpoint="http://image_preview_api:8000",
 )
-from bulk.background_fetch import create_background_bulk_crawler_task
-from sites.bff_car import BffCarImageModel, BffCarSiteModel
-# Future: Dynamically import .sites handlers using `importlib`
-# For now - we can import directly
-# the output gzip filenames can be inferred from the class name of the SiteModel
-# will have to think about the cache_period
 app.add_task(
     create_background_bulk_crawler_task(
         site_model=BffCarSiteModel(fetch_json),
         image_model=BffCarImageModel(fetch_image_preview),
-        path_gzip_data=app.config.PATH_STATIC.joinpath("bff-car.json.gz"),
-        path_gzip_images=app.config.PATH_STATIC.joinpath("bff-car-images.json.gz"),
-        cache_period=datetime.timedelta(hours=1, minutes=1),
-        retry_period=datetime.timedelta(minutes=5, seconds=10),
+        path=app.config.PATH_STATIC,
     )
 )

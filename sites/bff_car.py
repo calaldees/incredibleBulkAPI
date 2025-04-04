@@ -1,12 +1,15 @@
+import datetime
 import re
 import typing as t
 
 from bulk.data import crawl_for_key, get_path
-from bulk.image_model import AbstractImageModel, ImageUrl, FetchImageBase64Callable
 from bulk.site_model import AbstractSiteModel, APIBulk, APIDepth, APIPath, APIPayload, FetchJsonCallable
+from bulk.image_model import AbstractImageModel, ImageUrl, FetchImageBase64Callable
 
 
 class BffCarSiteModel(AbstractSiteModel):
+    name = 'bff-car'
+    cache_period = datetime.timedelta(hours=1, minutes=1)
 
     def __init__(self, fetch_json: FetchJsonCallable, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
         self.fetch_json = fetch_json
@@ -53,6 +56,8 @@ class BffCarSiteModel(AbstractSiteModel):
 
     @t.override
     def continue_crawl(self, path: APIPath, depth: APIDepth, payload: APIPayload) -> bool:
+        #if path.startswith("/catchup/brand_group/"):
+        #    return False
         if "playable_list" in path and depth > 2:
             # `playable_lists`` are all postcasts and episodes - catchup is on a different url -
             # 'playable_list' in url and depth > 2 == gives 582 pages uncompressed6.4mb  gzip0.84mb
@@ -63,6 +68,8 @@ class BffCarSiteModel(AbstractSiteModel):
 
 
 class BffCarImageModel(AbstractImageModel):
+    name = 'bff-car-images'
+
     ALLOWED_URL_REGEX = (
         re.compile("/features/.*"),
         re.compile("/catchup/.*"),

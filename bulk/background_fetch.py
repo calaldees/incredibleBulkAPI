@@ -16,12 +16,12 @@ log = logging.getLogger(__name__)
 def create_background_bulk_crawler_task(
     site_model: AbstractSiteModel,
     image_model: AbstractImageModel,
-    path_gzip_data: Path,
-    path_gzip_images: Path,
-    cache_period: datetime.timedelta,
-    retry_period: datetime.timedelta,
+    path: Path,
+    #retry_period: datetime.timedelta = datetime.timedelta(minutes=10),
 ) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
 
+    path_gzip_data = path.joinpath(site_model.name+'.json.gz')
+    path_gzip_images = path.joinpath(image_model.name+'.json.gz')
     semaphore = asyncio.Semaphore(1)
 
     async def generate_bulk_cache():
@@ -65,17 +65,17 @@ def create_background_bulk_crawler_task(
             # Only allow one async task to proceed with `_generate_bulk_cache` at a time
             # Bug: Sadly, when _generate_bulk_cache fails, and does not update the file, all the workers try in sequence again before sleeping
             async with semaphore:
-                if (cache_period - get_age(path_gzip_data)) < datetime.timedelta():
+                if (site_model.cache_period - get_age(path_gzip_data)) < datetime.timedelta():
                     log.info(
-                        f"BULK_CACHE: {path_gzip_data=} older than {cache_period=} - regenerating bulk cache"
+                        f"BULK_CACHE: {path_gzip_data=} older than {site_model.cache_period=} - regenerating bulk cache"
                     )
                     await _generate_bulk_cache()
 
             sleep_seconds = int(
-                max(
-                    retry_period.total_seconds(),
-                    (cache_period - get_age(path_gzip_data)).total_seconds(),
-                )
+                #max(
+                    #retry_period.total_seconds(),
+                    (site_model.cache_period - get_age(path_gzip_data)).total_seconds(),
+                #)
             )
             log.info(
                 f"BULK_CACHE: sleeping for {sleep_seconds=} before next generation"

@@ -6,6 +6,11 @@
 
 http://localhost:8000/static_json_gzip/bff-car.json
 http://localhost:8000/static_json_gzip/bff-car-images.json
+http://localhost:8000/static/bulk_image_viewer.html?bulk_image_datafile=/static_json_gzip/bff-car-images.json
+
+http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson
+
+curl "http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson" -vvv
 
 ---
 
@@ -32,8 +37,13 @@ graph TD
 
     subgraph docker-compose [docker-compose]
         nginx
-        incredible_bulk_api
+        %% incredible_bulk_api
         image_preview_api
+
+        subgraph incredible_bulk_api [incredible_bulk_api]
+            background_fetch
+            fetch["/fetch?url="]
+        end
 
         logs[(/logs/)]
         nginx ..-> logs
@@ -41,16 +51,19 @@ graph TD
         image_preview_api ..-> logs
 
         nginx -- http 8000 --> incredible_bulk_api
-        incredible_bulk_api -- http 8001 --> image_preview_api
+        background_fetch -- http 8001 --> image_preview_api
 
-        %% incredible_bulk_api -- http json--> external
-        %% image_preview_api -- http --> external
     end
 
-    subgraph filesystem
-        /_static_json_gzip_/[(/static_json_gzip/)]
+    subgraph filesystem ["filesystem /static_json_gzip/"]
+        bulk_data[("???.json.gz")]
+        bulk_images[("???-images.json.gz")]
+        cache_data[("individual cache")]
     end
 
-    /static_json_gzip/ --> nginx
-    incredible_bulk_api -- gzip --> /static_json_gzip/
+    filesystem -- gzip_static on; --> nginx
+    background_fetch -- .json.gz --> bulk_data
+    background_fetch -- .json.gz --> bulk_images
+
+    fetch -- 302 --> cache_data
 ```
