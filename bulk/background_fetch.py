@@ -24,7 +24,7 @@ def create_background_bulk_crawler_task(
     path: Path,
     retry_period: datetime.timedelta = datetime.timedelta(
         minutes=10
-    ),  # if bulk fails - try again in Xmin
+    ),  # if bulk fails - try again in Xmin  TODO: not currently working
 ) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
     path_gzip_data = path.joinpath(site_model.name + ".json.gz")
     path_gzip_images = path.joinpath(image_model.name + ".json.gz")
@@ -89,19 +89,20 @@ def create_background_bulk_crawler_task(
             async with semaphore:
                 if (
                     site_model.cache_period - get_age(path_gzip_data)
-                ) < datetime.timedelta():
+                ) < datetime.timedelta(seconds=0):
                     log.info(
                         f"BULK_CACHE: {path_gzip_data=} older than {site_model.cache_period=} - regenerating bulk cache"
                     )
                     await _generate_bulk_cache()
+                    # TODO: if _generate_bulk_cache fails ... we want to wait for `retry_period` - we don't want to hammer this
 
                 sleep_timedelta = datetime.timedelta(
-                    seconds=max(
-                        retry_period.total_seconds(),
+                    seconds=#max(
+                        #retry_period.total_seconds(),
                         (
                             site_model.cache_period - get_age(path_gzip_data)
                         ).total_seconds(),
-                    )
+                    #)
                 )
                 # Trying to display a time failed because of time difference
                 # next_generation_datetime = datetime.datetime.now(tz=datetime.timezone.utc) + sleep_timedelta
