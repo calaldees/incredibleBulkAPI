@@ -16,7 +16,9 @@ import ujson
 log = logging.getLogger(__name__)
 
 
-type Json = t.Mapping[str, Json | str | int | float | bool] | t.Sequence[Json | str | int | float | bool]
+type JsonPrimitives = str | int | float | bool | None
+type Json = t.Mapping[str, Json | JsonPrimitives] | t.Sequence[Json | JsonPrimitives]
+
 type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[Json]]
 
 type ImageUrl = str
@@ -118,11 +120,16 @@ async def fetch_json_cache(
     #     response_status = response.status
     #     assert 'json' in response.headers.get('content-type', '')
 
-    async with aiohttp.ClientSession() as session:
-        async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
-            # assert 'json' in response.content_type
-            response_status = response.status
-            response_body = await response.read()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
+                # assert 'json' in response.content_type
+                response_status = response.status
+                response_body = await response.read()
+    except Exception as ex:
+        log.error(f'failed request {params.asdict()}')
+        log.exception(ex)
+        return {}
 
     # TODO: async gzip-stream
     if response_status == 200:
