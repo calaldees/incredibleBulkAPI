@@ -19,9 +19,8 @@ def create_background_bulk_crawler_task(
     path: Path,
     retry_period: datetime.timedelta = datetime.timedelta(minutes=1),
 ) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
-
-    path_gzip_data = path.joinpath(site_model.name+'.json.gz')
-    path_gzip_images = path.joinpath(image_model.name+'.json.gz')
+    path_gzip_data = path.joinpath(site_model.name + ".json.gz")
+    path_gzip_images = path.joinpath(image_model.name + ".json.gz")
     semaphore = asyncio.Semaphore(1)
 
     async def generate_bulk_cache():
@@ -32,12 +31,20 @@ def create_background_bulk_crawler_task(
         def get_age(path: Path) -> datetime.timedelta:
             if not path.exists():
                 return datetime.timedelta(weeks=52)
-            return datetime.datetime.now() - datetime.datetime.fromtimestamp(path.stat().st_mtime)
+            return datetime.datetime.now() - datetime.datetime.fromtimestamp(
+                path.stat().st_mtime
+            )
 
         def rotate_output_file(file: Path):
             if file.exists():
-                date_string = datetime.datetime.fromtimestamp(file.stat().st_mtime).strftime('%Y-%m-%d-%H-%M')
-                file.rename(path.joinpath(f'{file.name.removesuffix(".json.gz")}-{date_string}.json.gz'))
+                date_string = datetime.datetime.fromtimestamp(
+                    file.stat().st_mtime
+                ).strftime("%Y-%m-%d-%H-%M")
+                file.rename(
+                    path.joinpath(
+                        f'{file.name.removesuffix(".json.gz")}-{date_string}.json.gz'
+                    )
+                )
 
         async def _generate_bulk_cache():
             # Generate Data
@@ -50,7 +57,7 @@ def create_background_bulk_crawler_task(
                 # TODO: Async write?
                 log.info(f"BULK_CACHE: writing {path_gzip_data}")
                 rotate_output_file(path_gzip_data)
-                with gzip.open(path_gzip_data, 'wt', encoding='UTF-8') as zipfile:
+                with gzip.open(path_gzip_data, "wt", encoding="UTF-8") as zipfile:
                     ujson.dump(api_bulk, zipfile)
 
             # Generate Image Previews
@@ -62,17 +69,20 @@ def create_background_bulk_crawler_task(
                 # TODO: Async write?
                 log.info(f"BULK_CACHE: writing {path_gzip_images}")
                 rotate_output_file(path_gzip_images)
-                with gzip.open(path_gzip_images, 'wt', encoding='UTF-8') as zipfile:
+                with gzip.open(path_gzip_images, "wt", encoding="UTF-8") as zipfile:
                     ujson.dump(api_bulk_images, zipfile)
-
 
         while True:
             # Semaphore gate
             # This process is spawned each time a worker thread/task is created
             # Only allow one async task to proceed with `_generate_bulk_cache` at a time
-            # Bug: Sadly, when _generate_bulk_cache fails, and does not update the file, all the workers try in sequence again before sleeping
+            if semaphore.locked():
+                log.info('create_background_bulk_crawler_task canceled - another worker is active')
+                break  # if another worker is processing, cancel this entire background task
             async with semaphore:
-                if (site_model.cache_period - get_age(path_gzip_data)) < datetime.timedelta():
+                if (
+                    site_model.cache_period - get_age(path_gzip_data)
+                ) < datetime.timedelta():
                     log.info(
                         f"BULK_CACHE: {path_gzip_data=} older than {site_model.cache_period=} - regenerating bulk cache"
                     )

@@ -149,14 +149,23 @@ Example Use
 -----------
 
 * bulk
-    * http://localhost:8000/static_json_gzip/bff-car.json
-    * http://localhost:8000/static_json_gzip/bff-car-images.json
-    * http://localhost:8000/static/bulk_image_viewer.html?bulk_image_datafile=/static_json_gzip/bff-car-images.json
-* `/fetch` single url
-    * http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson
+    * http://localhost/static_json_gzip/ (auto-index files)
+    * data
+        * http://localhost/static_json_gzip/bff-car.json (latest) (auto-index shows)
+    * images
+        * http://localhost/static_json_gzip/bff-car-images.json
+            * http://localhost/static/bulk_image_viewer.html?bulk_image_datafile=/static_json_gzip/bff-car-images.json
+    * history
+        * Every time a bulk payload is created, old versions are renamed and preserved
+        * http://localhost/static_json_gzip/bff-car-1970-01-01-00-00.json
+        * http://localhost/static_json_gzip/bff-car-images-1970-01-01-00-00.json
+* `/fetch` single url (latest)
+    * http://localhost/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson
     * ```bash
-        curl "http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson" -vvv
+        curl "http://localhost/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson" -vvv
         ```
+* `/image_preview_api/?url=xxx&width=200` (should probably be hidden for production, but interesting to see)
+    * http://localhost/image_preview_api/?url=https://upload.wikimedia.org/wikipedia/commons/e/e4/Redeveloped_Leicester_Square.jpg&width=300
 
 
 Future

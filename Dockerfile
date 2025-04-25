@@ -24,4 +24,4 @@ FROM code as test
 
 FROM code as production
     EXPOSE 8000
-    CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "sanic_app.app:app"]
+    CMD ["python3", "-m", "sanic", "--host", "0.0.0.0", "--workers", "4", "sanic_app.app:app"]
