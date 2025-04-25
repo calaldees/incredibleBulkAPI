@@ -22,7 +22,9 @@ def create_background_bulk_crawler_task(
     site_model: AbstractSiteModel,
     image_model: AbstractImageModel,
     path: Path,
-    retry_period: datetime.timedelta = datetime.timedelta(minutes=10),  # if bulk fails - try again in Xmin
+    retry_period: datetime.timedelta = datetime.timedelta(
+        minutes=10
+    ),  # if bulk fails - try again in Xmin
 ) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
     path_gzip_data = path.joinpath(site_model.name + ".json.gz")
     path_gzip_images = path.joinpath(image_model.name + ".json.gz")
@@ -93,16 +95,19 @@ def create_background_bulk_crawler_task(
                     )
                     await _generate_bulk_cache()
 
-                sleep_timedelta = datetime.timedelta(seconds=max(
+                sleep_timedelta = datetime.timedelta(
+                    seconds=max(
                         retry_period.total_seconds(),
                         (
                             site_model.cache_period - get_age(path_gzip_data)
                         ).total_seconds(),
                     )
                 )
-                next_generation_datetime = datetime.datetime.now(tz=datetime.timezone.utc) + sleep_timedelta
+                # Trying to display a time failed because of time difference
+                # next_generation_datetime = datetime.datetime.now(tz=datetime.timezone.utc) + sleep_timedelta
+                # {next_generation_datetime.strftime('%H:%I')}
                 log.info(
-                    f"BULK_CACHE: sleeping for {sleep_timedelta.seconds/60:,.0f}mins next generation at {next_generation_datetime.strftime('%H:%I')}"
+                    f"BULK_CACHE: sleeping for {sleep_timedelta.seconds/60:,.0f}mins"
                 )
                 await asyncio.sleep(sleep_timedelta.seconds)
 
