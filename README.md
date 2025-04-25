@@ -1,43 +1,34 @@
 # incredibleBulkAPI
 
-* API service for gzip batching of other REST services
+* API service for gzip batching REST services
 
----
 
-http://localhost:8000/static_json_gzip/bff-car.json
-http://localhost:8000/static_json_gzip/bff-car-images.json
-http://localhost:8000/static/bulk_image_viewer.html?bulk_image_datafile=/static_json_gzip/bff-car-images.json
+Problems with REST/bff-pattern
+------------------------------
 
-http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson
-
-curl "http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson" -vvv
-
----
-
-Problems
---------
-
-* [Backends for Frontends pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends) is a powerful design pattern
+* [Backends for Frontends (BFF)](https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends) is a powerful design pattern
 
 1. Client performance
-    * bff but it can lead to user interactions being performance bound to to the round trip time to the backend service.
-    * For mobile clients on less reliable network connections, the bff-pattern can have a more pronounced impact on performance.
-    * In addition to api data returns, clients often perform additional fetches for images. Adding to additional round trip time before a ui could become useable.
+    * The UI is performance bound to the round trip time to the backend service.
+        * If every a client action triggers a call to bff, this can lead to user interactions being laggy/unresponsive.
+    * For mobile clients on less reliable network connections, the bff-pattern can have an even more pronounced impact on performance.
+    * In addition to api data returns, clients often perform additional fetches for images. Adding to additional round trip time before a ui could become useable. (some UI may require the images to function)
     * In development/testing of a client, developers often have exceptionally performant network connections. Real life performance of an application can often be hidden from developers.
 2. Service outage
     * In the event of a service outage, clients can lock and become unusable for all operations.
 3. Service history
     * Most api returns are transitive.
     * If we want to know what an api return looked like yesterday at midday, we have no history or information about this.
+    * A service history of API returns could be a useful tool in supporting legacy versions. ("The service worked last week, what's changed in the response?")
 
 Solution
 --------
 
-* If the client could prefetch a batch/bulk of some of the hot/frequent data paths, perhaps we could have more responsive applications without the 'round trip' time.
+* If the client could prefetch a batch/bulk of some of the hot/frequent data paths, perhaps we could have more responsive applications without the ongoing 'round trip' time.
 * Possible client implementation
-    * Client operates as normal, fetching data from a bff. In the background the client is fetching the batch/bulk data.
+    * Client operates as normal, fetching data from a bff. In the background the client is fetching the batch/bulk data. (Suggest a max payload of 1MB?)
     * Clients check if a path is in the batch/bulk cache, if not, fetch as normal from bff, else display cached version.
-* In addition to providing api data in batches, we can crawl the batch/bulk payloads for images. We can create a second payload with base64 encoded previews for images
+* In addition to providing api data in batches, we can crawl the batch/bulk payloads for images. We can create a second payload with base64-avif encoded previews for placeholder images
 
 ### Example
 
@@ -74,9 +65,11 @@ Solution
 * `/fetch?url=xxx&accept=xxx` -> `302` -> `/static_json_gzip/cache/12345.json`
     * If background crawl task has been unable to fetch a new version, the `/static_json_gzip/cache/xxx.json.gz` will still be present as the last received version
 
-### Moving beyond nginx? Cloud?
+### Volumetrics? Examples
 
-It could be possible to the pre-gzipped static content though a cloud/edge provider if needed with little modification.
+* Repeated patterns compress really well
+* TODO - numbers
+
 
 
 Add a `site` to bulk
@@ -152,7 +145,21 @@ graph TD
 ```
 
 
+Example Use
+-----------
+
+* bulk
+    * http://localhost:8000/static_json_gzip/bff-car.json
+    * http://localhost:8000/static_json_gzip/bff-car-images.json
+    * http://localhost:8000/static/bulk_image_viewer.html?bulk_image_datafile=/static_json_gzip/bff-car-images.json
+* `/fetch` single url
+    * http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson
+    * ```bash
+        curl "http://localhost:8000/fetch?url=https://bff-car-guacamole.musicradio.com/features&Accept=application/vnd.global.5%2Bjson" -vvv
+        ```
+
+
 Future
 ------
 
-* Saving gzip could be a async stream to cloud service?
+* Saving gzip could be a async stream to cloud/edge service?
