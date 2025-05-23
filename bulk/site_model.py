@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import typing as t
+from itertools import islice
 from abc import abstractmethod
 
 from .fetch import RequestParams
@@ -40,7 +41,7 @@ class AbstractSiteModel:
             cache[api_path] = payload
             if not self.continue_crawl(api_path, depth, payload):
                 continue
-            for path in self.extract_crawl_paths(api_path, payload):
+            for path in islice(self.extract_crawl_paths(api_path, payload), 10):
                 # TODO BUG: not quite right, we want to replace if depth is lower
                 to_crawl.setdefault(path, depth + 1)
             for key in to_crawl.keys() & cache.keys():

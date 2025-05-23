@@ -1,3 +1,4 @@
+import contextlib
 import dataclasses
 import datetime
 import gzip
@@ -25,6 +26,13 @@ type ImageUrl = str
 type Base64EncodedImage = str
 type FetchImageBase64Callable = t.Callable[[ImageUrl], t.Awaitable[Base64EncodedImage]]
 
+
+class SessionResponseProtocol(t.Protocol):
+    status: int
+    async def read(self) -> bytes: ...
+class SessionProtocol(t.Protocol):
+    @contextlib.asynccontextmanager
+    async def request(self, *args, **kwargs) -> SessionResponseProtocol: ...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -102,6 +110,7 @@ class CacheFile():
 async def fetch_json_cache(
     params: RequestParams,
     cache_path: CachePath,
+    session: SessionProtocol,
 ) -> Json:
     """
     The cache files can be served by nginx as pre-compressed payloads
@@ -121,11 +130,11 @@ async def fetch_json_cache(
     #     assert 'json' in response.headers.get('content-type', '')
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
-                # assert 'json' in response.content_type
-                response_status = response.status
-                response_body = await response.read()
+        #async with aiohttp.ClientSession() as session:
+        async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
+            # assert 'json' in response.content_type
+            response_status = response.status
+            response_body = await response.read()
     except Exception as ex:
         log.error(f'failed request {params.asdict()}')
         log.exception(ex)
@@ -143,7 +152,8 @@ async def fetch_json_cache(
 async def fetch_image_preview_cache(
     image_url: ImageUrl,
     cache_path: CachePath,
-    image_preview_service_endpoint: str
+    image_preview_service_endpoint: str,
+    session: SessionProtocol,
 ) -> Base64EncodedImage:
     params = RequestParams.build(
         method="POST",
@@ -161,11 +171,11 @@ async def fetch_image_preview_cache(
     #     response_body = response.read()
     #     response_status = response.status
     #     assert 'text' in response.headers.get('content-type', '')
-    async with aiohttp.ClientSession() as session:
-        async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
-            # assert 'text' in response.content_type
-            response_status = response.status
-            response_body = await response.read()
+    #async with aiohttp.ClientSession() as session:
+    async with session.request(**params.asdict(), timeout=5, ssl=False) as response:
+        # assert 'text' in response.content_type
+        response_status = response.status
+        response_body = await response.read()
 
     if response_status == 200:
         cache_file.path.write_bytes(response_body)

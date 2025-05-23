@@ -14,7 +14,7 @@ class BffCarSiteModel(AbstractSiteModel):
     def __init__(self, fetch_json: FetchJsonCallable, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
         self.fetch_json = fetch_json
         self.endpoint = endpoint
-        self.headers = {"Accept": "application/vnd.global.5+json"}
+        self.headers = {"Accept": "application/vnd.global.6+json"}
         self.root_path: APIPath = '/features'
 
     @t.override
@@ -36,8 +36,10 @@ class BffCarSiteModel(AbstractSiteModel):
         {'fake_url'}
         """
         # Features - is a list of items
-        if get_path(payload, "0.slug"):
+        if get_path(payload, "0.slug"):  # v5 responses with slug
             return {f"{path}/{i.get('slug')}" for i in payload}
+        if get_path(payload, "0.path"):  # v6 responses with path
+            return {i.get('path') for i in payload}
         # CarPage - crawl for primary_action navigate hrefs
         car_page_navigate_hrefs: set[str] = set(
             filter(
@@ -58,9 +60,13 @@ class BffCarSiteModel(AbstractSiteModel):
 
     @t.override
     def continue_crawl(self, path: APIPath, depth: APIDepth, payload: APIPayload) -> bool:
-        #if path.startswith("/catchup/brand_group/"):
+        if path.startswith("/catchup/brand_group/"):
+            return False
+        #if path.startswith("/features/"):
         #    return False
-        if "playable_list" in path and depth > 2:
+        if "playable_list" in path: # and depth > 1:
+            # v6 now has podcasts on the main page - so we have LOADS of podcast episodes. Investigate
+            #
             # `playable_lists`` are all postcasts and episodes - catchup is on a different url -
             # 'playable_list' in url and depth > 2 == gives 582 pages uncompressed6.4mb  gzip0.84mb
             # no depth full 1300 pages uncompressed 32mb gzip 4.2mb

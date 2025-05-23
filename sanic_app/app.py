@@ -52,25 +52,31 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
     return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=path))
 
 
-
+import aiohttp
 from bulk.fetch import FetchJsonCallable, FetchImageBase64Callable, fetch_json_cache, fetch_image_preview_cache
 from bulk.background_fetch import create_background_bulk_crawler_task
 from sites.bff_car import BffCarImageModel, BffCarSiteModel
 # Future: Dynamically import .sites handlers using `importlib`
 # For now - we can import directly
-fetch_json: FetchJsonCallable = partial(
-    fetch_json_cache,
-    cache_path=CachePath(path=cache_path_data.path, ttl=BffCarSiteModel.cache_period)
-)
-fetch_image_preview: FetchImageBase64Callable = partial(
-    fetch_image_preview_cache,
-    cache_path=CachePath(path=app.config.PATH_STATIC.joinpath('images'), ttl=datetime.timedelta(weeks=52)),
-    image_preview_service_endpoint="http://image_preview_api:8000",
-)
-app.add_task(
-    create_background_bulk_crawler_task(
-        site_model=BffCarSiteModel(fetch_json),
-        image_model=BffCarImageModel(fetch_image_preview),
-        path=app.config.PATH_STATIC,
+
+#@app.main_process_start
+@app.before_server_start
+async def setup_background_tasks(app: sanic.Sanic):
+    fetch_json: FetchJsonCallable = partial(
+        fetch_json_cache,
+        cache_path=CachePath(path=cache_path_data.path, ttl=BffCarSiteModel.cache_period),
+        session=aiohttp.ClientSession(),
     )
-)
+    fetch_image_preview: FetchImageBase64Callable = partial(
+        fetch_image_preview_cache,
+        cache_path=CachePath(path=app.config.PATH_STATIC.joinpath('images'), ttl=datetime.timedelta(weeks=52)),
+        image_preview_service_endpoint="http://image_preview_api:8000",
+        session=aiohttp.ClientSession(),
+    )
+    app.add_task(
+        create_background_bulk_crawler_task(
+            site_model=BffCarSiteModel(fetch_json),
+            image_model=BffCarImageModel(fetch_image_preview),
+            path=app.config.PATH_STATIC,
+        )
+    )
