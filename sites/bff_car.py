@@ -41,21 +41,19 @@ class BffCarSiteModel(AbstractSiteModel):
         if get_path(payload, "0.path"):  # v6 responses with path
             return {i.get('path') for i in payload}
         # CarPage - crawl for primary_action navigate hrefs
-        car_page_navigate_hrefs: set[str] = set(
-            filter(
-                None,
-                (
-                    get_path(primary_action, "payload.link.href")  # type: ignore
-                    for primary_action in crawl_for_key(payload, "primary_action")
-                ),
-            )
-        )
+        #car_page_navigate_hrefs: set[str] = set(
+        return \
+            filter(None, (
+                get_path(primary_action, "payload.link.href")  # type: ignore
+                for primary_action in crawl_for_key(payload, "primary_action")
+            ))
+        #)
         # set(
         # TODO: cache Playables
         # get_path(primary_action, 'payload.id')
         # Although these are calls to `bff-mobile` and may need more client work
         # )
-        return car_page_navigate_hrefs
+        #return car_page_navigate_hrefs
 
 
     @t.override
@@ -78,9 +76,11 @@ class BffCarSiteModel(AbstractSiteModel):
 class BffCarImageModel(AbstractImageModel):
     name = 'bff-car-images'
 
-    ALLOWED_URL_REGEX = (
-        re.compile("/features/.*"),
-        re.compile("/catchup/.*"),
+    SKIP_URL_REGEX = (
+        #re.compile("/features/.*"),
+        #re.compile("/catchup/.*"),
+        re.compile(".*/lists/.*"),
+        re.compile(".*/playable_list/.*"),
     )
 
     def __init__(self, fetch_image_preview_base64: FetchImageBase64Callable):
@@ -89,9 +89,10 @@ class BffCarImageModel(AbstractImageModel):
     @t.override
     def extract_image_urls(self, data: APIBulk) -> t.Iterable[ImageUrl]:
         for api_path, api_payload in data.items():
-            if any(regex.match(api_path) for regex in self.ALLOWED_URL_REGEX):
-                yield from (
-                    image_url
-                    for image_url in crawl_for_key(api_payload, "url")
-                    if "images." in image_url   # This is a substring in `proteus` endpoints
-                )
+            if any(regex.match(api_path) for regex in self.SKIP_URL_REGEX):
+                continue
+            yield from (
+                image_url
+                for image_url in crawl_for_key(api_payload, "url")
+                if any(i in image_url for i in ('global', 'musicrad', 'bff-car'))
+            )

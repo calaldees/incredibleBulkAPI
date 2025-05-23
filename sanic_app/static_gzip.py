@@ -28,6 +28,7 @@ async def static_json_gzip(request: sanic.Request, path: Path) -> sanic.HTTPResp
         "Content-Encoding": "gzip",
         "Content-Type": "application/json",
         "Content-Length": str(path.stat().st_size),
+        "Access-Control-Allow-Origin": "*",
     }
     if request.method == 'GET':
         return await sanic.response.file_stream(path, headers=headers)

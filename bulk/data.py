@@ -1,5 +1,5 @@
 import itertools
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Generator
 
 
 def get_path(data: Sequence | Mapping, path: str | Sequence[str]):
@@ -33,7 +33,7 @@ def get_path(data: Sequence | Mapping, path: str | Sequence[str]):
     return data
 
 
-def crawl_for_key(data: Mapping | Sequence, key):
+def crawl_for_key(data: Mapping | Sequence, key: str) -> Generator:
     """
     >>> data = {'primary_action': 'hello'}
     >>> tuple(crawl_for_key(data, 'primary_action'))
