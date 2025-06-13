@@ -20,14 +20,14 @@ semaphore = asyncio.Semaphore(1)
 
 def create_background_bulk_crawler_task(
     site_model: AbstractSiteModel,
-    image_model: AbstractImageModel,
+    image_model: AbstractImageModel | None,  # TODO: temp None - refactor
     path: Path,
     retry_period: datetime.timedelta = datetime.timedelta(
         minutes=10
     ),  # if bulk fails - try again in Xmin  TODO: not currently working
 ) -> t.Callable[..., t.Awaitable[t.NoReturn]]:
     path_gzip_data = path.joinpath(site_model.name + ".json.gz")
-    path_gzip_images = path.joinpath(image_model.name + ".json.gz")
+    path_gzip_images = path.joinpath(image_model.name + ".json.gz") if image_model else path
 
     def get_age(path: Path) -> datetime.timedelta:
         if not path.exists():
@@ -60,6 +60,9 @@ def create_background_bulk_crawler_task(
             rotate_output_file(path_gzip_data)
             with gzip.open(path_gzip_data, "wt", encoding="UTF-8") as zipfile:
                 ujson.dump(api_bulk, zipfile)
+
+        if not image_model:  # TODO: the files produced should be part of the site model - move/remove
+            return
 
         # Generate Image Previews
         try:

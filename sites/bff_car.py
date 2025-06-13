@@ -9,12 +9,12 @@ from bulk.image_model import AbstractImageModel, ImageUrl, FetchImageBase64Calla
 
 class BffCarSiteModel(AbstractSiteModel):
     name = 'bff-car'
-    cache_period = datetime.timedelta(hours=1, minutes=1)
+    cache_period = datetime.timedelta(hours=1, minutes=1)  # TODO: consider that this is doing for different platforms
 
     def __init__(self, fetch_json: FetchJsonCallable, endpoint: str = 'https://bff-car-guacamole.musicradio.com'):
         self.fetch_json = fetch_json
         self.endpoint = endpoint
-        self.headers = {"Accept": "application/vnd.global.6+json"}
+        self.headers = {"accept": "application/vnd.global.6+json"}
         self.root_path: APIPath = '/features'
 
     @t.override

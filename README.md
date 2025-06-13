@@ -60,6 +60,8 @@ Solution
 * All data content is pre-gzipped and served from nginx with `gzip_static on;`
     * The python layer does not serve any data content directly
 
+TODO: eTag
+
 ### Service outage? Single file
 
 * `/fetch?url=xxx&accept=xxx` -> `302` -> `/static_json_gzip/cache/12345.json`
@@ -172,3 +174,9 @@ Future
 ------
 
 * Saving gzip could be a async stream to cloud/edge service?
+* all in one bulk does not flexable enough
+    * stations
+    * articles
+
+Strucutre - tabs
+Data - artilces

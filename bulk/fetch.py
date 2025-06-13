@@ -21,6 +21,7 @@ type JsonPrimitives = str | int | float | bool | None
 type Json = t.Mapping[str, Json | JsonPrimitives] | t.Sequence[Json | JsonPrimitives]
 
 type FetchJsonCallable = t.Callable[[RequestParams], t.Awaitable[Json]]
+type FetchCallable = t.Callable[[RequestParams], t.Awaitable[bytes]]
 
 type ImageUrl = str
 type Base64EncodedImage = str
@@ -73,6 +74,16 @@ class RequestParams():
     def asdict(self) -> dict[str, t.Any]:
         return dataclasses.asdict(self) | {'headers': dict(self.headers)}
 
+    @property
+    def expected_response_content_type(self):
+        # HACK: OH MY GOD!
+        accept = dict(self.headers).get('accept', '')
+        if 'json' in accept or '.json' in self.url:
+            return 'json'
+        if 'html' in accept or '.html' in self.url:
+            return 'html'
+        raise NotImplementedError()
+
     def __hash__(self) -> int:
         return adler32(pickle.dumps(dataclasses.astuple(self)))  # stable data hash
 
@@ -107,21 +118,25 @@ class CacheFile():
         )
 
 
-async def fetch_json_cache(
+async def fetch_cache(
     params: RequestParams,
     cache_path: CachePath,
     session: SessionProtocol,
-) -> Json:
+) -> Json | str:  # TODO: having multiple types here is incorrect
     """
     The cache files can be served by nginx as pre-compressed payloads
     """
-    cache_file = CacheFile(params, cache_path, file_suffix='.json.gz')
+    cache_file = CacheFile(params, cache_path, file_suffix=f'.{params.expected_response_content_type}.gz')
 
     if not cache_file.expired:
         log.debug(f'loading from cache {params.url=}')
         # TODO: async gzip-stream
         with gzip.GzipFile(cache_file.path, mode='rb') as f:
-            return ujson.load(f)
+            # OH NO!
+            if params.expected_response_content_type == 'json':
+                return ujson.load(f)
+            if params.expected_response_content_type == 'html':
+                return f.read().decode('utf8')
 
     # Old sync request
     # with urllib.request.urlopen(urllib.request.Request(**params.asdict())) as response:
@@ -145,7 +160,12 @@ async def fetch_json_cache(
         with gzip.GzipFile(cache_file.path, mode='wb') as f:
             f.write(response_body)
 
-    return ujson.loads(response_body)
+    # OH NO!
+    if params.expected_response_content_type == 'json':
+        return ujson.loads(response_body)
+    if params.expected_response_content_type == 'html':
+        return response_body.decode('utf8')
+    raise AssertionError()
 
 
 

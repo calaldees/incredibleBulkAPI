@@ -6,6 +6,7 @@ dependencies = [
 	"sanic[ext]",
 	"ujson",
 	"aiohttp",
+	"beautifulsoup4",
 	#"gzip-stream",
 ]
 

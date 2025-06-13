@@ -42,29 +42,32 @@ async def redirect_to_cache_file(request: sanic.Request) -> sanic.HTTPResponse:
     url = params.pop('url', '')
     if not url:
         raise sanic.exceptions.BadRequest('url missing')
-    # resolve the `cache_file` in the same way that `fetch_json_cache` builds filenames
+    # resolve the `cache_file` in the same way that `fetch_cache` builds filenames
+    request_params = RequestParams.build(url, method=params.pop('method', 'GET'), headers=params)
     cache_file = CacheFile(
-        params=RequestParams.build(url, method=params.pop('method', 'GET'), headers=params),
+        params=request_params,
         cache_path=cache_path_data,
-        file_suffix='.json.gz',
+        file_suffix=f'.{request_params.expected_response_content_type}.gz',
     )
     path = str(cache_file.path.relative_to(app.config.PATH_STATIC)).removesuffix('.gz')
     return sanic.response.convenience.redirect(to=app.url_for('static_json_gzip', path=path))
 
 
 import aiohttp
-from bulk.fetch import FetchJsonCallable, FetchImageBase64Callable, fetch_json_cache, fetch_image_preview_cache
+from bulk.fetch import FetchCallable, FetchImageBase64Callable, fetch_cache, fetch_image_preview_cache
 from bulk.background_fetch import create_background_bulk_crawler_task
-from sites.bff_car import BffCarImageModel, BffCarSiteModel
+
+#from sites.bff_car import BffCarImageModel, BffCarSiteModel
+from sites.bff_mobile import BffMobileArticleModel
 # Future: Dynamically import .sites handlers using `importlib`
 # For now - we can import directly
 
 #@app.main_process_start
 @app.before_server_start
 async def setup_background_tasks(app: sanic.Sanic):
-    fetch_json: FetchJsonCallable = partial(
-        fetch_json_cache,
-        cache_path=CachePath(path=cache_path_data.path, ttl=BffCarSiteModel.cache_period),
+    fetch: FetchCallable = partial(
+        fetch_cache,
+        cache_path=CachePath(path=cache_path_data.path, ttl=datetime.timedelta(hours=1, minutes=1)),
         session=aiohttp.ClientSession(),
     )
     fetch_image_preview: FetchImageBase64Callable = partial(
@@ -75,8 +78,10 @@ async def setup_background_tasks(app: sanic.Sanic):
     )
     app.add_task(
         create_background_bulk_crawler_task(
-            site_model=BffCarSiteModel(fetch_json),
-            image_model=BffCarImageModel(fetch_image_preview),
+            site_model=BffMobileArticleModel(fetch),
+            image_model=None,
+        #     site_model=BffCarSiteModel(fetch_json),
+        #     image_model=BffCarImageModel(fetch_image_preview),
             path=app.config.PATH_STATIC,
         )
     )
