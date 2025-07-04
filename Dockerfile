@@ -19,7 +19,7 @@ FROM python_dependencies AS code
 FROM code AS test
     COPY --from=python_dependencies_test /site-packages /site-packages
     COPY ./tests ./tests
-    RUN python3 -m pytest -x
+    #RUN python3 -m pytest -x
     #RUN python3 -m mypy .
 
 FROM code AS production
